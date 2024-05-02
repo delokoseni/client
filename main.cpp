@@ -43,7 +43,7 @@ public:
         QLabel *registerPrompt = new QLabel("Нет учётной записи? <a href='register'>Зарегистрироваться</a>");
         registerPrompt->setTextFormat(Qt::RichText);
         registerPrompt->setTextInteractionFlags(Qt::TextBrowserInteraction);
-         loginFormLayout->addWidget(registerPrompt);
+        loginFormLayout->addWidget(registerPrompt);
 
         // Виджеты для экрана регистрации
         QWidget *registerWidget = new QWidget();
@@ -83,11 +83,31 @@ public:
             stackedWidget->setCurrentIndex(0);
         });
 
-        connect(registerButton, &QPushButton::clicked, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput]() {
+        // Объявление QLabel для отображения сообщений об ошибке
+        QLabel *errorLabel = new QLabel();
+        errorLabel->setStyleSheet("QLabel { color : red; }");
+        registerFormLayout->addRow(errorLabel);
+        errorLabel->hide();
+
+        connect(registerButton, &QPushButton::clicked, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput, errorLabel]() {
             QString newUsername = newUsernameInput->text();
             QString newPassword = newPasswordInput->text();
             QString repeatPassword = repeatPasswordInput->text();
-            // Здесь реализовать логику регистрации новых пользователей
+
+            // Сначала проверяем, совпадают ли пароли
+            if(newPassword != repeatPassword) {
+                errorLabel->setText("Пароли не совпадают");
+                errorLabel->show();
+            } else {
+                // Пароли совпадают, скрываем сообщение об ошибке
+                errorLabel->hide();
+
+                // Здесь отправляем данные на сервер для регистрации
+                if(m_socket->isOpen()) {
+                    QTextStream stream(m_socket);
+                    stream << "register:" << newUsername << ":" << newPassword << "\n";
+                }
+            }
         });
 
         connect(m_socket, &QTcpSocket::connected, this, &ChatClient::onConnected);
@@ -105,7 +125,13 @@ private slots:
 
     void onReadyRead() {
         QTextStream stream(m_socket);
-        qDebug() << "Server says:" << stream.readAll();
+        QString response = stream.readAll();
+        qDebug() << "Server says:" << response;
+
+        if(response.startsWith("register:error")) {
+            // Отобразите ошибку на интерфейсе пользователя
+        }
+        // Другая логика обработки ответа от сервера
     }
 
 private:
