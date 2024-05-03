@@ -11,6 +11,8 @@
 #include <QWidget>
 #include <QStackedWidget>
 #include <QHBoxLayout>
+#include <QTimer>
+#include <QRegularExpression>
 
 class ChatClient : public QMainWindow {
     Q_OBJECT
@@ -33,17 +35,18 @@ public:
         QLineEdit *passwordInput = new QLineEdit();
         passwordInput->setEchoMode(QLineEdit::Password);
         QPushButton *loginButton = new QPushButton("Войти");
+
+        QLabel *registerPrompt = new QLabel("Нет учетной записи? <a href='register'>Зарегистрироваться</a>");
+        registerPrompt->setTextFormat(Qt::RichText);
+        registerPrompt->setTextInteractionFlags(Qt::TextBrowserInteraction);
         loginFormLayout->addRow(new QLabel("Логин:"), usernameInput);
         loginFormLayout->addRow(new QLabel("Пароль:"), passwordInput);
         loginFormLayout->addWidget(loginButton);
+        loginFormLayout->addWidget(registerPrompt);
+
         loginLayout->addLayout(loginFormLayout);
         loginWidget->setLayout(loginLayout);
-
-        // Ссылка для перехода к экрану регистрации
-        QLabel *registerPrompt = new QLabel("Нет учётной записи? <a href='register'>Зарегистрироваться</a>");
-        registerPrompt->setTextFormat(Qt::RichText);
-        registerPrompt->setTextInteractionFlags(Qt::TextBrowserInteraction);
-        loginFormLayout->addWidget(registerPrompt);
+        stackedWidget->addWidget(loginWidget);
 
         // Виджеты для экрана регистрации
         QWidget *registerWidget = new QWidget();
@@ -51,67 +54,73 @@ public:
         QFormLayout *registerFormLayout = new QFormLayout();
         QLineEdit *newUsernameInput = new QLineEdit();
         QLineEdit *newPasswordInput = new QLineEdit();
-        newPasswordInput->setEchoMode(QLineEdit::Password);
         QLineEdit *repeatPasswordInput = new QLineEdit();
+        newPasswordInput->setEchoMode(QLineEdit::Password);
         repeatPasswordInput->setEchoMode(QLineEdit::Password);
         QPushButton *registerButton = new QPushButton("Зарегистрироваться");
+        QLabel *errorLabel = new QLabel();
+        errorLabel->setStyleSheet("QLabel { color: red; }");
+        errorLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        errorLabel->hide();
+
         registerFormLayout->addRow(new QLabel("Логин:"), newUsernameInput);
         registerFormLayout->addRow(new QLabel("Пароль:"), newPasswordInput);
         registerFormLayout->addRow(new QLabel("Повторите пароль:"), repeatPasswordInput);
+        registerFormLayout->addRow("", errorLabel);
         registerFormLayout->addWidget(registerButton);
-        registerLayout->addLayout(registerFormLayout);
         QPushButton *backButton = new QPushButton("Назад");
+        registerLayout->addLayout(registerFormLayout);
         registerLayout->addWidget(backButton);
         registerWidget->setLayout(registerLayout);
-
-        // Добавление виджетов на стек
-        stackedWidget->addWidget(loginWidget);
         stackedWidget->addWidget(registerWidget);
 
-        // Сигналы и слоты
         connect(loginButton, &QPushButton::clicked, this, [this, usernameInput, passwordInput]() {
-            QString username = usernameInput->text();
-            QString password = passwordInput->text();
-            // Здесь реализовать логику аутентификации
+            // Логика аутентификации
         });
 
         connect(registerPrompt, &QLabel::linkActivated, this, [stackedWidget]() {
-            stackedWidget->setCurrentIndex(1);
+                    stackedWidget->setCurrentIndex(1);
         });
 
         connect(backButton, &QPushButton::clicked, this, [stackedWidget]() {
             stackedWidget->setCurrentIndex(0);
         });
 
-        // Объявление QLabel для отображения сообщений об ошибке
-        QLabel *errorLabel = new QLabel();
-        errorLabel->setStyleSheet("QLabel { color : red; }");
-        registerFormLayout->addRow(errorLabel);
-        errorLabel->hide();
-
         connect(registerButton, &QPushButton::clicked, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput, errorLabel]() {
             QString newUsername = newUsernameInput->text();
             QString newPassword = newPasswordInput->text();
             QString repeatPassword = repeatPasswordInput->text();
+            errorLabel->show();
 
-            // Сначала проверяем, совпадают ли пароли
-            if(newPassword != repeatPassword) {
+            if (newPassword != repeatPassword) {
                 errorLabel->setText("Пароли не совпадают");
-                errorLabel->show();
+            } else if (newPassword.length() < 8 ||
+                       !newPassword.contains(QRegularExpression("[A-Z]")) ||
+                       !newPassword.contains(QRegularExpression("[a-z]")) ||
+                       !newPassword.contains(QRegularExpression("[0-9]")) ||
+                       !newPassword.contains(QRegularExpression("[!@#$%^&*(),.?\":{}|<>]"))) {
+                errorLabel->setText("Пароль слишком слабый");
+            } else if (newPassword.length() > 255) {
+                errorLabel->setText("Пароль слишком длинный");
             } else {
-                // Пароли совпадают, скрываем сообщение об ошибке
+                // Отправить данные на сервер для регистрации
+                errorLabel->clear();
                 errorLabel->hide();
-
-                // Здесь отправляем данные на сервер для регистрации
-                if(m_socket->isOpen()) {
+                if (m_socket->isOpen()) {
                     QTextStream stream(m_socket);
-                    stream << "register:" << newUsername << ":" << newPassword << "\n";
+                    stream << "register:" << newUsername << ":" << newPassword;
                 }
             }
         });
 
         connect(m_socket, &QTcpSocket::connected, this, &ChatClient::onConnected);
-        connect(m_socket, &QTcpSocket::readyRead, this, &ChatClient::onReadyRead);
+
+        connect(m_socket, &QTcpSocket::readyRead, this, [this]() {
+            QTextStream stream(m_socket);
+            QString response = stream.readAll();
+            qDebug() << "Server says:" << response;
+            // Обработка ответа сервера
+        });
     }
 
     void connectToServer() {
@@ -127,11 +136,7 @@ private slots:
         QTextStream stream(m_socket);
         QString response = stream.readAll();
         qDebug() << "Server says:" << response;
-
-        if(response.startsWith("register:error")) {
-            // Отобразите ошибку на интерфейсе пользователя
-        }
-        // Другая логика обработки ответа от сервера
+        // Обработка ответа сервера
     }
 
 private:
@@ -146,5 +151,6 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     ChatClient client("127.0.0.1", 3000);
     client.show();
+    client.connectToServer();
     return app.exec();
 }
