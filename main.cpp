@@ -35,18 +35,17 @@ public:
         QLineEdit *passwordInput = new QLineEdit();
         passwordInput->setEchoMode(QLineEdit::Password);
         QPushButton *loginButton = new QPushButton("Войти");
+        loginFormLayout->addRow(new QLabel("Логин:"), usernameInput);
+        loginFormLayout->addRow(new QLabel("Пароль:"), passwordInput);
+        loginLayout->addLayout(loginFormLayout);
+        loginLayout->addWidget(loginButton);
+        loginWidget->setLayout(loginLayout);
+        stackedWidget->addWidget(loginWidget);
 
         QLabel *registerPrompt = new QLabel("Нет учетной записи? <a href='register'>Зарегистрироваться</a>");
         registerPrompt->setTextFormat(Qt::RichText);
         registerPrompt->setTextInteractionFlags(Qt::TextBrowserInteraction);
-        loginFormLayout->addRow(new QLabel("Логин:"), usernameInput);
-        loginFormLayout->addRow(new QLabel("Пароль:"), passwordInput);
-        loginFormLayout->addWidget(loginButton);
         loginFormLayout->addWidget(registerPrompt);
-
-        loginLayout->addLayout(loginFormLayout);
-        loginWidget->setLayout(loginLayout);
-        stackedWidget->addWidget(loginWidget);
 
         // Виджеты для экрана регистрации
         QWidget *registerWidget = new QWidget();
@@ -58,39 +57,36 @@ public:
         newPasswordInput->setEchoMode(QLineEdit::Password);
         repeatPasswordInput->setEchoMode(QLineEdit::Password);
         QPushButton *registerButton = new QPushButton("Зарегистрироваться");
+
         QLabel *errorLabel = new QLabel();
         errorLabel->setStyleSheet("QLabel { color: red; }");
-        errorLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        errorLabel->setAlignment(Qt::AlignCenter);
         errorLabel->hide();
 
         registerFormLayout->addRow(new QLabel("Логин:"), newUsernameInput);
         registerFormLayout->addRow(new QLabel("Пароль:"), newPasswordInput);
         registerFormLayout->addRow(new QLabel("Повторите пароль:"), repeatPasswordInput);
-        registerFormLayout->addRow("", errorLabel);
+        registerFormLayout->addWidget(errorLabel);
         registerFormLayout->addWidget(registerButton);
-        QPushButton *backButton = new QPushButton("Назад");
-        registerLayout->addLayout(registerFormLayout);
-        registerLayout->addWidget(backButton);
         registerWidget->setLayout(registerLayout);
         stackedWidget->addWidget(registerWidget);
 
-        connect(loginButton, &QPushButton::clicked, this, [this, usernameInput, passwordInput]() {
-            // Логика аутентификации
-        });
-
+        // Переключение между экранами
         connect(registerPrompt, &QLabel::linkActivated, this, [stackedWidget]() {
-                    stackedWidget->setCurrentIndex(1);
+            stackedWidget->setCurrentIndex(1);
         });
 
+        QPushButton *backButton = new QPushButton("Назад");
+        registerLayout->addWidget(backButton);
         connect(backButton, &QPushButton::clicked, this, [stackedWidget]() {
             stackedWidget->setCurrentIndex(0);
         });
 
-        connect(registerButton, &QPushButton::clicked, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput, errorLabel]() {
+        // Обработка кнопки регистрации
+        connect(registerButton, &QPushButton::clicked, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput, errorLabel, stackedWidget]() {
             QString newUsername = newUsernameInput->text();
             QString newPassword = newPasswordInput->text();
             QString repeatPassword = repeatPasswordInput->text();
-            errorLabel->show();
 
             if (newPassword != repeatPassword) {
                 errorLabel->setText("Пароли не совпадают");
@@ -103,40 +99,30 @@ public:
             } else if (newPassword.length() > 255) {
                 errorLabel->setText("Пароль слишком длинный");
             } else {
-                // Отправить данные на сервер для регистрации
                 errorLabel->clear();
                 errorLabel->hide();
-                if (m_socket->isOpen()) {
-                    QTextStream stream(m_socket);
-                    stream << "register:" << newUsername << ":" << newPassword;
-                }
+                QTextStream stream(m_socket);
+                stream << "register:" << newUsername << ":" << newPassword << "\n";
+                m_socket->flush();
             }
         });
 
-        connect(m_socket, &QTcpSocket::connected, this, &ChatClient::onConnected);
-
-        connect(m_socket, &QTcpSocket::readyRead, this, [this]() {
+        connect(m_socket, &QTcpSocket::readyRead, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput, errorLabel, stackedWidget]() {
             QTextStream stream(m_socket);
-            QString response = stream.readAll();
-            qDebug() << "Server says:" << response;
-            // Обработка ответа сервера
+            QString response = stream.readAll().trimmed();
+            if(response.startsWith("register:fail:username taken")) {
+                errorLabel->setText("Этот логин уже используется");
+                errorLabel->show();
+                stackedWidget->setCurrentIndex(1);
+            } else if(response.startsWith("register:success")) {
+                errorLabel->clear();
+                errorLabel->hide();
+                // здесь может быть код перехода к следующему экрану приложения после успешной регистрации
+            }
         });
-    }
 
-    void connectToServer() {
+        // Подключение к серверу
         m_socket->connectToHost(m_host, m_port);
-    }
-
-private slots:
-    void onConnected() {
-        qDebug() << "Connected to server.";
-    }
-
-    void onReadyRead() {
-        QTextStream stream(m_socket);
-        QString response = stream.readAll();
-        qDebug() << "Server says:" << response;
-        // Обработка ответа сервера
     }
 
 private:
@@ -151,6 +137,6 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     ChatClient client("127.0.0.1", 3000);
     client.show();
-    client.connectToServer();
+
     return app.exec();
 }
