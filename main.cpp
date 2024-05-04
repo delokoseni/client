@@ -39,10 +39,18 @@ public:
         QLabel *registerPrompt = new QLabel("Нет учетной записи? <a href='register'>Зарегистрироваться</a>");
         registerPrompt->setTextFormat(Qt::RichText);
         registerPrompt->setTextInteractionFlags(Qt::TextBrowserInteraction);
+        //Новый код
+        QLabel *registerSuccessLabel = new QLabel();
+        registerSuccessLabel->setStyleSheet("QLabel { color: green; }");
+        registerSuccessLabel->setAlignment(Qt::AlignCenter);
+        registerSuccessLabel->hide();
+
         loginFormLayout->addRow(new QLabel("Логин:"), usernameInput);
         loginFormLayout->addRow(new QLabel("Пароль:"), passwordInput);
         loginFormLayout->addWidget(loginButton);
         loginFormLayout->addWidget(registerPrompt);
+        //loginFormLayout->addWidget(registerSuccessLabel);
+        loginFormLayout->addRow(registerSuccessLabel);
 
         loginLayout->addLayout(loginFormLayout);
         loginWidget->setLayout(loginLayout);
@@ -115,11 +123,21 @@ public:
 
         connect(m_socket, &QTcpSocket::connected, this, &ChatClient::onConnected);
 
-        connect(m_socket, &QTcpSocket::readyRead, this, [this]() {
-            QTextStream stream(m_socket);
-            QString response = stream.readAll();
-            qDebug() << "Server says:" << response;
-            // Обработка ответа сервера
+        connect(m_socket, &QTcpSocket::readyRead, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput, errorLabel, stackedWidget, registerSuccessLabel]() {
+                    QTextStream stream(m_socket);
+                    QString response = stream.readAll().trimmed();
+                    if(response.startsWith("register:fail:username taken")) {
+                        errorLabel->setText("Этот логин уже используется");
+                        errorLabel->show();
+                        stackedWidget->setCurrentIndex(1);
+                    } else if(response.startsWith("register:success")) {
+                        //errorLabel->clear();
+                        //errorLabel->hide();
+                        stackedWidget->setCurrentIndex(0);
+                        registerSuccessLabel->setText("Регистрация прошла успешно");
+                        registerSuccessLabel->show();
+                        QTimer::singleShot(5000, registerSuccessLabel, &QLabel::hide);
+                    }
         });
     }
 
