@@ -13,6 +13,7 @@
 #include <QHBoxLayout>
 #include <QTimer>
 #include <QRegularExpression>
+#include "Messenger.h"
 
 class ChatClient : public QMainWindow {
     Q_OBJECT
@@ -83,7 +84,7 @@ public:
         stackedWidget->addWidget(registerWidget);
 
         connect(loginButton, &QPushButton::clicked, this, [this, usernameInput, passwordInput]() {
-            // Логика аутентификации
+            sendLoginRequest(usernameInput->text(), passwordInput->text());
         });
 
         connect(registerPrompt, &QLabel::linkActivated, this, [stackedWidget]() {
@@ -123,6 +124,9 @@ public:
 
         connect(m_socket, &QTcpSocket::connected, this, &ChatClient::onConnected);
 
+        connect(m_socket, &QTcpSocket::readyRead, this, &ChatClient::onReadyRead);
+
+
         connect(m_socket, &QTcpSocket::readyRead, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput, errorLabel, stackedWidget, registerSuccessLabel]() {
                     QTextStream stream(m_socket);
                     QString response = stream.readAll().trimmed();
@@ -142,7 +146,23 @@ public:
     }
 
     void connectToServer() {
-        m_socket->connectToHost(m_host, m_port);
+            connect(m_socket, &QTcpSocket::connected, this, &ChatClient::onConnected);
+            connect(m_socket, &QTcpSocket::readyRead, this, &ChatClient::onReadyRead); // Устанавливаем соединение сигнала с слотом
+            m_socket->connectToHost(m_host, m_port);
+        }
+
+    //void connectToServer() {
+        //m_socket->connectToHost(m_host, m_port);
+    //}
+
+    void sendLoginRequest(const QString &username, const QString &password) {
+        if(m_socket->isOpen()) {
+            QTextStream stream(m_socket);
+            stream << "login:" << username << ":" << password << '\n'; // "\n" обозначает конец команды
+            stream.flush();
+        } else {
+            qDebug() << "Socket is not open. Cannot send login request.";
+        }
     }
 
 private slots:
@@ -152,9 +172,21 @@ private slots:
 
     void onReadyRead() {
         QTextStream stream(m_socket);
-        QString response = stream.readAll();
-        qDebug() << "Server says:" << response;
-        // Обработка ответа сервера
+        QString response = stream.readAll().trimmed();
+        // Проверка ответа сервера на успешный вход
+        if (response.startsWith("login:success")) {
+            // Создаем окно чата
+            this->hide();
+            Messenger *messenger = new Messenger(this);
+            messenger->show();
+            messenger->setAttribute(Qt::WA_DeleteOnClose); // Установить флаг для автоматического удаления
+            // Закрыть текущее окно входа
+            connect(messenger, &Messenger::destroyed, [this]() { this->close(); });
+        } else if (response.startsWith("login:fail")) {
+            // Ошибка входа, информировать пользователя
+            // ...
+        }
+
     }
 
 private:
