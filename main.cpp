@@ -40,7 +40,12 @@ public:
         QLabel *registerPrompt = new QLabel("Нет учетной записи? <a href='register'>Зарегистрироваться</a>");
         registerPrompt->setTextFormat(Qt::RichText);
         registerPrompt->setTextInteractionFlags(Qt::TextBrowserInteraction);
-        //Новый код
+
+        loginErrorLabel = new QLabel();
+        loginErrorLabel->setStyleSheet("QLabel { color: red; }");
+        loginErrorLabel->setAlignment(Qt::AlignCenter);
+        loginErrorLabel->hide();
+
         QLabel *registerSuccessLabel = new QLabel();
         registerSuccessLabel->setStyleSheet("QLabel { color: green; }");
         registerSuccessLabel->setAlignment(Qt::AlignCenter);
@@ -50,8 +55,8 @@ public:
         loginFormLayout->addRow(new QLabel("Пароль:"), passwordInput);
         loginFormLayout->addWidget(loginButton);
         loginFormLayout->addWidget(registerPrompt);
-        //loginFormLayout->addWidget(registerSuccessLabel);
         loginFormLayout->addRow(registerSuccessLabel);
+        loginFormLayout->addWidget(loginErrorLabel);
 
         loginLayout->addLayout(loginFormLayout);
         loginWidget->setLayout(loginLayout);
@@ -135,8 +140,6 @@ public:
                         errorLabel->show();
                         stackedWidget->setCurrentIndex(1);
                     } else if(response.startsWith("register:success")) {
-                        //errorLabel->clear();
-                        //errorLabel->hide();
                         stackedWidget->setCurrentIndex(0);
                         registerSuccessLabel->setText("Регистрация прошла успешно");
                         registerSuccessLabel->show();
@@ -151,17 +154,13 @@ public:
             m_socket->connectToHost(m_host, m_port);
         }
 
-    //void connectToServer() {
-        //m_socket->connectToHost(m_host, m_port);
-    //}
-
     void sendLoginRequest(const QString &username, const QString &password) {
-        if(m_socket->isOpen()) {
+        if (!username.isEmpty() && !password.isEmpty() && m_socket->isOpen()) {
             QTextStream stream(m_socket);
-            stream << "login:" << username << ":" << password << '\n'; // "\n" обозначает конец команды
+            stream << "login:" << username << ":" << password << '\n';
             stream.flush();
         } else {
-            qDebug() << "Socket is not open. Cannot send login request.";
+            qDebug() << "Login and password must be entered or the socket is not open.";
         }
     }
 
@@ -183,16 +182,18 @@ private slots:
             // Закрыть текущее окно входа
             connect(messenger, &Messenger::destroyed, [this]() { this->close(); });
         } else if (response.startsWith("login:fail")) {
-            // Ошибка входа, информировать пользователя
-            // ...
+            loginErrorLabel->setText("Введены неверный логин или пароль");
+            loginErrorLabel->show();
         }
 
     }
+
 
 private:
     QString m_host;
     int m_port;
     QTcpSocket *m_socket;
+    QLabel *loginErrorLabel;
 };
 
 #include "main.moc"
