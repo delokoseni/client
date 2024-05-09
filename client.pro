@@ -8,6 +8,7 @@ CONFIG += c++11
 
 SOURCES += \
         #ChatClient.cpp \
+        Login.cpp \
         Messenger.cpp \
         main.cpp
 
@@ -33,4 +34,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
     #ChatClient.h
 
 HEADERS += \
+    Login.h \
     Messenger.h
