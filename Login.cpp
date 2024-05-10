@@ -73,14 +73,21 @@ Login::Login(const QString &host, int port, QWidget *parent) : QMainWindow(paren
         sendLoginRequest(usernameInput->text(), passwordInput->text());
     });
 
-    connect(registerPrompt, &QLabel::linkActivated, this, [this]() {
+    connect(registerPrompt, &QLabel::linkActivated, this, [this, usernameInput, passwordInput]() {
         stackedWidget->setCurrentIndex(1);
         setWindowTitle("Регистрация");
+        usernameInput->clear();
+        passwordInput->clear();
+        loginErrorLabel->setText("");
     });
 
-    connect(backButton, &QPushButton::clicked, this, [this]() {
+    connect(backButton, &QPushButton::clicked, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput]() {
         stackedWidget->setCurrentIndex(0);
         setWindowTitle("Вход");
+        errorLabel->setText("");
+        newUsernameInput->clear();
+        newPasswordInput->clear();
+        repeatPasswordInput->clear();
     });
 
     connect(registerButton, &QPushButton::clicked, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput]() {
@@ -88,19 +95,32 @@ Login::Login(const QString &host, int port, QWidget *parent) : QMainWindow(paren
         QString newPassword = newPasswordInput->text();
         QString repeatPassword = repeatPasswordInput->text();
         errorLabel->show();
-        if (newUsername.contains(QRegularExpression("[А-я]")))
+        if (newUsername.isEmpty())
+        {
+            errorLabel->setText("Логин не может быть пустым");
+            return;
+        } else if (newUsername.contains(QRegularExpression("[А-я]")))
+        {
             errorLabel->setText("Логин содержит запрещенные символы");
-        else if (newPassword != repeatPassword) {
+            return;
+        }
+        else if (newPassword != repeatPassword)
+        {
             errorLabel->setText("Пароли не совпадают");
+            return;
         } else if (newPassword.length() < 8 ||
                    !newPassword.contains(QRegularExpression("[A-Z]")) ||
                    !newPassword.contains(QRegularExpression("[a-z]")) ||
                    !newPassword.contains(QRegularExpression("[0-9]")) ||
                    newPassword.contains(QRegularExpression("[А-я]")) ||
-                   !newPassword.contains(QRegularExpression("[!@#$%^&*(),.?\":{}|<>]"))) {
+                   !newPassword.contains(QRegularExpression("[!@#$%^&*(),.?\":{}|<>]")))
+        {
             errorLabel->setText("Пароль слишком слабый\nили содержит запрещенные символы");
-        } else if (newPassword.length() > 255) {
+            return;
+        } else if (newPassword.length() > 255)
+        {
             errorLabel->setText("Пароль слишком длинный");
+            return;
         } else {
             // Отправить данные на сервер для регистрации
             errorLabel->clear();
