@@ -7,14 +7,12 @@
 #include <QDebug>
 
 Messenger::Messenger(const QString &host, int port, QWidget *parent)
-: QMainWindow(parent), m_host(host), m_port(port), m_socket(new QTcpSocket(this)) {
+: QMainWindow(parent), m_host(host), m_port(port), m_socket(new QTcpSocket(this))
+{
+    connectToServer(); //???
+
     setWindowTitle("Чаты");
     resize(window_width, window_height);
-
-    // Основной виджет и вертикальный макет
-    QWidget *centralWidget = new QWidget(this);
-    QVBoxLayout *verticalLayout = new QVBoxLayout(centralWidget);
-    setCentralWidget(centralWidget);
 
     // Горизонтальный макет для поиска
     QHBoxLayout *searchLayout = new QHBoxLayout();
@@ -25,6 +23,11 @@ Messenger::Messenger(const QString &host, int port, QWidget *parent)
     // Создаем кнопку "Найти" и добавляем её в горизонтальный макет
     QPushButton *searchButton = new QPushButton("Найти");
     searchLayout->addWidget(searchButton);
+
+    // Основной виджет и вертикальный макет
+    QWidget *centralWidget = new QWidget(this);
+    QVBoxLayout *verticalLayout = new QVBoxLayout(centralWidget);
+    setCentralWidget(centralWidget);
 
     usersListWidget = new QListWidget(this);
     verticalLayout->addWidget(usersListWidget);
@@ -53,15 +56,18 @@ void Messenger::connectToServer()
     m_socket->connectToHost(m_host, m_port);
 }
 
-void Messenger::sendSearchRequest(const QString &searchText) {
-    if (m_socket->isOpen() && !searchText.isEmpty()) {
+void Messenger::sendSearchRequest(const QString &searchText)
+{
+    if (m_socket->isOpen() && !searchText.isEmpty())
+    {
         QTextStream stream(m_socket);
         stream << "search:" << searchText << '\n';
         stream.flush();
     }
 }
 
-void Messenger::performSearch() {
+void Messenger::performSearch()
+{
     QString searchText = searchEdit->text().trimmed();
     sendSearchRequest(searchText);
 }
@@ -73,5 +79,14 @@ void Messenger::onConnected()
 
 void Messenger::onReadyRead()
 {
-    qDebug() << "Connected to server.";
+    QTextStream stream(m_socket);
+    while (!stream.atEnd())
+    {
+        QString line = stream.readLine();
+        if (line.startsWith("search_result:"))
+        {
+            QString username = line.section(':', 1);
+            usersListWidget->addItem(username);
+        }
+    }
 }

@@ -24,14 +24,11 @@ class Login : public QMainWindow
 
 public:
     explicit Login(const QString &host, int port, QWidget *parent = nullptr);
-
     void connectToServer();
-
     void sendLoginRequest(const QString &username, const QString &password);
 
 private slots:
     void onConnected();
-
     void onReadyRead();
 
 private:
@@ -39,7 +36,8 @@ private:
     QString m_host;
     int m_port;
     QTcpSocket *m_socket;
-    QLabel *loginErrorLabel;
+    QLabel *loginErrorLabel, *registerSuccessLabel, *errorLabel;
+    QStackedWidget *stackedWidget;
 };
 
 #endif // LOGIN_H
