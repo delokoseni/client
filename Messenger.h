@@ -18,7 +18,6 @@ public slots:
     void performSearch(); // Слот для обработки поиска
     void onConnected();
     void onReadyRead();
-    void sendSearchRequest(const QString &searchText);
 
 private:
     unsigned int window_width = 800, window_height = 600;

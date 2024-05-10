@@ -55,14 +55,14 @@ Login::Login(const QString &host, int port, QWidget *parent) : QMainWindow(paren
     QPushButton *registerButton = new QPushButton("Зарегистрироваться");
     errorLabel = new QLabel();
     errorLabel->setStyleSheet("QLabel { color: red; }");
-    errorLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    errorLabel->setAlignment(Qt::AlignCenter | Qt::AlignCenter);
     errorLabel->hide();
 
     registerFormLayout->addRow(new QLabel("Логин:"), newUsernameInput);
     registerFormLayout->addRow(new QLabel("Пароль:"), newPasswordInput);
     registerFormLayout->addRow(new QLabel("Повторите пароль:"), repeatPasswordInput);
-    registerFormLayout->addRow("", errorLabel);
     registerFormLayout->addWidget(registerButton);
+    registerFormLayout->addRow("", errorLabel);
     QPushButton *backButton = new QPushButton("Назад");
     registerLayout->addLayout(registerFormLayout);
     registerLayout->addWidget(backButton);
@@ -88,15 +88,17 @@ Login::Login(const QString &host, int port, QWidget *parent) : QMainWindow(paren
         QString newPassword = newPasswordInput->text();
         QString repeatPassword = repeatPasswordInput->text();
         errorLabel->show();
-
-        if (newPassword != repeatPassword) {
+        if (newUsername.contains(QRegularExpression("[А-я]")))
+            errorLabel->setText("Логин содержит запрещенные символы");
+        else if (newPassword != repeatPassword) {
             errorLabel->setText("Пароли не совпадают");
         } else if (newPassword.length() < 8 ||
                    !newPassword.contains(QRegularExpression("[A-Z]")) ||
                    !newPassword.contains(QRegularExpression("[a-z]")) ||
                    !newPassword.contains(QRegularExpression("[0-9]")) ||
+                   newPassword.contains(QRegularExpression("[А-я]")) ||
                    !newPassword.contains(QRegularExpression("[!@#$%^&*(),.?\":{}|<>]"))) {
-            errorLabel->setText("Пароль слишком слабый");
+            errorLabel->setText("Пароль слишком слабый\nили содержит запрещенные символы");
         } else if (newPassword.length() > 255) {
             errorLabel->setText("Пароль слишком длинный");
         } else {
@@ -114,22 +116,6 @@ Login::Login(const QString &host, int port, QWidget *parent) : QMainWindow(paren
 
     connect(m_socket, &QTcpSocket::readyRead, this, &Login::onReadyRead);
 
-    /*connect(m_socket, &QTcpSocket::readyRead, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput]() {
-        QTextStream stream(m_socket);
-        QString response = stream.readAll().trimmed();
-        qDebug() << "Server response:" << response;
-        if(response.startsWith("register:fail:username taken")) {
-            errorLabel->setText("Этот логин уже используется");
-            errorLabel->show();
-            stackedWidget->setCurrentIndex(1);
-        } else if(response.startsWith("register:success")) {
-            stackedWidget->setCurrentIndex(0);
-            setWindowTitle("Вход");
-            registerSuccessLabel->setText("Регистрация прошла успешно");
-            registerSuccessLabel->show();
-            QTimer::singleShot(5000, registerSuccessLabel, &QLabel::hide);
-        }
-    });*/
 }
 
 void Login::connectToServer()

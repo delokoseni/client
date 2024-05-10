@@ -56,8 +56,9 @@ void Messenger::connectToServer()
     m_socket->connectToHost(m_host, m_port);
 }
 
-void Messenger::sendSearchRequest(const QString &searchText)
+void Messenger::performSearch()
 {
+    QString searchText = searchEdit->text().trimmed();
     if (m_socket->isOpen() && !searchText.isEmpty())
     {
         QTextStream stream(m_socket);
@@ -66,11 +67,6 @@ void Messenger::sendSearchRequest(const QString &searchText)
     }
 }
 
-void Messenger::performSearch()
-{
-    QString searchText = searchEdit->text().trimmed();
-    sendSearchRequest(searchText);
-}
 
 void Messenger::onConnected()
 {
