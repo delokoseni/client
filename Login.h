@@ -35,6 +35,7 @@ private slots:
     void onReadyRead();
 
 private:
+    unsigned int window_width = 400, window_height = 300;
     QString m_host;
     int m_port;
     QTcpSocket *m_socket;

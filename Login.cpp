@@ -2,8 +2,8 @@
 
 Login::Login(const QString &host, int port, QWidget *parent)
     : QMainWindow(parent), m_host(host), m_port(port), m_socket(new QTcpSocket(this)) {
-            setWindowTitle("ChatClient"); // Установка названия окна
-            resize(400, 300); // Установка размеров окна
+            setWindowTitle("Вход"); // Установка названия окна
+            resize(window_width, window_height); // Установка размеров окна
 
             // Стек виджетов для переключения между экранами входа и регистрации
             QStackedWidget *stackedWidget = new QStackedWidget(this);
@@ -73,12 +73,14 @@ Login::Login(const QString &host, int port, QWidget *parent)
                 sendLoginRequest(usernameInput->text(), passwordInput->text());
             });
 
-            connect(registerPrompt, &QLabel::linkActivated, this, [stackedWidget]() {
-                        stackedWidget->setCurrentIndex(1);
+            connect(registerPrompt, &QLabel::linkActivated, this, [stackedWidget, this]() {
+                stackedWidget->setCurrentIndex(1);
+                setWindowTitle("Регистрация");
             });
 
-            connect(backButton, &QPushButton::clicked, this, [stackedWidget]() {
+            connect(backButton, &QPushButton::clicked, this, [stackedWidget, this]() {
                 stackedWidget->setCurrentIndex(0);
+                setWindowTitle("Вход");
             });
 
             connect(registerButton, &QPushButton::clicked, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput, errorLabel]() {
@@ -112,20 +114,21 @@ Login::Login(const QString &host, int port, QWidget *parent)
 
             connect(m_socket, &QTcpSocket::readyRead, this, &Login::onReadyRead);
 
-
             connect(m_socket, &QTcpSocket::readyRead, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput, errorLabel, stackedWidget, registerSuccessLabel]() {
-                        QTextStream stream(m_socket);
-                        QString response = stream.readAll().trimmed();
-                        if(response.startsWith("register:fail:username taken")) {
-                            errorLabel->setText("Этот логин уже используется");
-                            errorLabel->show();
-                            stackedWidget->setCurrentIndex(1);
-                        } else if(response.startsWith("register:success")) {
-                            stackedWidget->setCurrentIndex(0);
-                            registerSuccessLabel->setText("Регистрация прошла успешно");
-                            registerSuccessLabel->show();
-                            QTimer::singleShot(5000, registerSuccessLabel, &QLabel::hide);
-                        }
+                QTextStream stream(m_socket);
+                QString response = stream.readAll().trimmed();
+                qDebug() << "Server response:" << response;
+                if(response.startsWith("register:fail:username taken")) {
+                    errorLabel->setText("Этот логин уже используется");
+                    errorLabel->show();
+                    stackedWidget->setCurrentIndex(1);
+                } else if(response.startsWith("register:success")) {
+                    stackedWidget->setCurrentIndex(0);
+                    setWindowTitle("Вход");
+                    registerSuccessLabel->setText("Регистрация прошла успешно");
+                    registerSuccessLabel->show();
+                    QTimer::singleShot(5000, registerSuccessLabel, &QLabel::hide);
+                }
             });
         }
 
@@ -162,7 +165,7 @@ void Login::onReadyRead()
     if (response.startsWith("login:success")) {
         // Создаем окно чата
         this->hide();
-        Messenger *messenger = new Messenger(this);
+        Messenger *messenger = new Messenger("127.0.0.1", 3000);
         messenger->show();
         messenger->setAttribute(Qt::WA_DeleteOnClose); // Установить флаг для автоматического удаления
         // Закрыть текущее окно входа
