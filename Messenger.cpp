@@ -80,26 +80,32 @@ void Messenger::onReadyRead()
 
     while (!stream.atEnd())
     {
-        buffer += stream.readLine();
-        qDebug() << "Response: " <<stream.readLine();
-        if (buffer.endsWith("search_end\n"))
+        QString line = stream.readLine().trimmed();
+        qDebug() << "Response: " << line;
+        buffer += line + "\n"; // Добавляем перенос строки для корректного разделения
+
+        if (line == "search_end") // Если обнаружен конец сообщения
         {
-            processServerResponse(buffer.trimmed());
-            buffer.clear();
+            processServerResponse(buffer.trimmed()); // Обрабатываем весь собранный ответ
+            buffer.clear(); // Очищаем буфер после обработки
         }
     }
-    qDebug() << "Response: Nothing";
 }
+
 
 void Messenger::processServerResponse(const QString &response)
 {
-    if (response.startsWith("search_result:"))
-    {
-        QString username = response.section(':', 1);
-        usersListWidget->addItem(username);
+    QStringList lines = response.split('\n'); // Разделяем буфер по строкам
+    for (const QString &line : lines) {
+        if (line.startsWith("search_result:")) {
+            QString username = line.section(':', 1, 1); // Получаем часть между двумя ':'
+            usersListWidget->addItem(new QListWidgetItem(username));
+        }
+        // Другие условия, например, для команд login, register и других
     }
-    else if (response == "search_end")
+    if (response.contains("search_end"))
     {
         // Обработка завершения поиска
     }
 }
+
