@@ -27,6 +27,7 @@ private:
     QLineEdit *searchEdit;
     QPushButton *exitButton;
     QListWidget *usersListWidget; // Виджет для отображения списка пользователей
+    void processServerResponse(const QString &response);
 
 };
 

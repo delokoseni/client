@@ -29,14 +29,14 @@ Messenger::Messenger(const QString &host, int port, QWidget *parent)
     QVBoxLayout *verticalLayout = new QVBoxLayout(centralWidget);
     setCentralWidget(centralWidget);
 
-    usersListWidget = new QListWidget(this);
-    verticalLayout->addWidget(usersListWidget);
-
     // Свяжите нажатие кнопки "Найти" со слотом performSearch:
     connect(searchButton, &QPushButton::clicked, this, &Messenger::performSearch);
 
     // Добавляем горизонтальный макет в вертикальный макет
     verticalLayout->addLayout(searchLayout);
+
+    usersListWidget = new QListWidget(this);
+    verticalLayout->addWidget(usersListWidget);
 
     // Настраиваем макет, чтобы кнопка "Выйти" была внизу
     verticalLayout->addStretch();
@@ -64,9 +64,9 @@ void Messenger::performSearch()
         QTextStream stream(m_socket);
         stream << "search:" << searchText << '\n';
         stream.flush();
+        qDebug() << "search:" << searchText << '\n';
     }
 }
-
 
 void Messenger::onConnected()
 {
@@ -76,13 +76,30 @@ void Messenger::onConnected()
 void Messenger::onReadyRead()
 {
     QTextStream stream(m_socket);
+    QString buffer;
+
     while (!stream.atEnd())
     {
-        QString line = stream.readLine();
-        if (line.startsWith("search_result:"))
+        buffer += stream.readLine();
+        qDebug() << "Response: " <<stream.readLine();
+        if (buffer.endsWith("search_end\n"))
         {
-            QString username = line.section(':', 1);
-            usersListWidget->addItem(username);
+            processServerResponse(buffer.trimmed());
+            buffer.clear();
         }
+    }
+    qDebug() << "Response: Nothing";
+}
+
+void Messenger::processServerResponse(const QString &response)
+{
+    if (response.startsWith("search_result:"))
+    {
+        QString username = response.section(':', 1);
+        usersListWidget->addItem(username);
+    }
+    else if (response == "search_end")
+    {
+        // Обработка завершения поиска
     }
 }
