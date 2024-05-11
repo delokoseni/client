@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QListWidget>
 #include <QTcpSocket>
+#include <QStackedWidget>
 
 class Messenger : public QMainWindow {
     Q_OBJECT
@@ -18,6 +19,7 @@ public slots:
     void performSearch(); // Слот для обработки поиска
     void onConnected();
     void onReadyRead();
+    void onSearchTextChanged(const QString &text);
 
 private:
     unsigned int window_width = 800, window_height = 600;
@@ -27,6 +29,8 @@ private:
     QLineEdit *searchEdit;
     QPushButton *exitButton;
     QListWidget *usersListWidget; // Виджет для отображения списка пользователей
+    QListWidget *chatsListWidget; // Добавлен виджет для отображения существующих чатов
+    QStackedWidget *stackedWidgets;
     void processServerResponse(const QString &response);
 
 };

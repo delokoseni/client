@@ -11,42 +11,39 @@ Messenger::Messenger(const QString &host, int port, QWidget *parent)
 {
     connectToServer(); //???
 
-    setWindowTitle("Чаты");
-    resize(window_width, window_height);
+        setWindowTitle("Чаты");
+        resize(window_width, window_height);
 
-    // Горизонтальный макет для поиска
-    QHBoxLayout *searchLayout = new QHBoxLayout();
-    searchEdit = new QLineEdit();
-    searchEdit->setPlaceholderText("Поиск...");
-    searchLayout->addWidget(searchEdit);
+        QHBoxLayout *searchLayout = new QHBoxLayout();
+        searchEdit = new QLineEdit();
+        searchEdit->setPlaceholderText("Поиск...");
+        searchLayout->addWidget(searchEdit);
 
-    // Создаем кнопку "Найти" и добавляем её в горизонтальный макет
-    QPushButton *searchButton = new QPushButton("Найти");
-    searchLayout->addWidget(searchButton);
+        QPushButton *searchButton = new QPushButton("Найти");
+        searchLayout->addWidget(searchButton);
 
-    // Основной виджет и вертикальный макет
-    QWidget *centralWidget = new QWidget(this);
-    QVBoxLayout *verticalLayout = new QVBoxLayout(centralWidget);
-    setCentralWidget(centralWidget);
+        QWidget *centralWidget = new QWidget(this);
+        QVBoxLayout *verticalLayout = new QVBoxLayout(centralWidget);
+        setCentralWidget(centralWidget);
 
-    // Свяжите нажатие кнопки "Найти" со слотом performSearch:
-    connect(searchButton, &QPushButton::clicked, this, &Messenger::performSearch);
+        connect(searchButton, &QPushButton::clicked, this, &Messenger::performSearch);
+        connect(searchEdit, &QLineEdit::textChanged, this, &Messenger::onSearchTextChanged);
 
-    // Добавляем горизонтальный макет в вертикальный макет
-    verticalLayout->addLayout(searchLayout);
+        // Инициализация и добавление QStackedWidget
+        stackedWidgets = new QStackedWidget(this);
+        usersListWidget = new QListWidget();
+        chatsListWidget = new QListWidget();
+        stackedWidgets->addWidget(chatsListWidget); // Индекс 0
+        stackedWidgets->addWidget(usersListWidget); // Индекс 1
 
-    usersListWidget = new QListWidget(this);
-    verticalLayout->addWidget(usersListWidget);
+        // Здесь могут быть добавлены существующие чаты в chatsListWidget...
 
-    // Настраиваем макет, чтобы кнопка "Выйти" была внизу
-    verticalLayout->addStretch();
+        verticalLayout->addLayout(searchLayout);
+        verticalLayout->addWidget(stackedWidgets);
 
-    // Добавляем кнопку "Выйти" в нижней части
-    exitButton = new QPushButton("Выйти");
-    verticalLayout->addWidget(exitButton);
-
-    // Подключаем кнопку "Выйти" к слоту close() окна
-    connect(exitButton, &QPushButton::clicked, this, &Messenger::close);
+        exitButton = new QPushButton("Выйти");
+        verticalLayout->addWidget(exitButton);
+        connect(exitButton, &QPushButton::clicked, this, &Messenger::close);
 }
 
 void Messenger::connectToServer()
@@ -59,14 +56,24 @@ void Messenger::connectToServer()
 void Messenger::performSearch()
 {
     QString searchText = searchEdit->text().trimmed();
-    if (m_socket->isOpen() && !searchText.isEmpty())
+    if (!searchText.isEmpty())
     {
-        QTextStream stream(m_socket);
-        stream << "search:" << searchText << '\n';
-        stream.flush();
-        qDebug() << "search:" << searchText << '\n';
+        if (m_socket->isOpen())
+        {
+            usersListWidget->clear();
+            QTextStream stream(m_socket);
+            stream << "search:" << searchText << '\n';
+            stream.flush();
+            qDebug() << "search:" << searchText << '\n';
+        }
+        stackedWidgets->setCurrentIndex(1); // Показываем результаты поиска
+    }
+    else
+    {
+        stackedWidgets->setCurrentIndex(0); // Показываем список чатов, если поле поиска пустое
     }
 }
+
 
 void Messenger::onConnected()
 {
@@ -92,6 +99,13 @@ void Messenger::onReadyRead()
     }
 }
 
+void Messenger::onSearchTextChanged(const QString &text)
+{
+    if (text.isEmpty())
+    {
+        stackedWidgets->setCurrentIndex(0); // Показываем список существующих чатов
+    }
+}
 
 void Messenger::processServerResponse(const QString &response)
 {
