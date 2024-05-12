@@ -131,7 +131,7 @@ void Messenger::processServerResponse(const QString &response)
 void Messenger::onUserListItemClicked(QListWidgetItem *item) {
     if (item) {
         qDebug() << "Выбран пользователь: " << item->text();
-
+        setWindowTitle(item->text());
         // Предположим, что chatId можно получить из данных элемента списка
         int chatId = item->data(Qt::UserRole).toInt();
         Chat *chatWidget = new Chat(this, chatId); // Создаем виджет чата
@@ -150,8 +150,8 @@ void Messenger::onUserListItemClicked(QListWidgetItem *item) {
 void Messenger::onChatListItemClicked(QListWidgetItem *item) {
     if (item) {
         qDebug() << "Выбран чат: " << item->text();
-
-        int chatId = item->data(Qt::UserRole).toInt(); // Убедитесь, что chatId установлен в data
+        setWindowTitle(item->text());
+        int chatId = item->data(Qt::UserRole).toInt(); // Убедитесь, что chatId установлен в data НЕ УСТАНОВЛЕН!!!
         Chat *chatWidget = new Chat(this, chatId);
         connect(chatWidget, &Chat::backToChatsList, this, [this, chatWidget]() {
             stackedWidgets->setCurrentWidget(chatsListWidget);
