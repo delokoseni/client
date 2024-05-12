@@ -6,8 +6,10 @@
 #include <QSqlError>
 #include <QDebug>
 
-Messenger::Messenger(const QString &host, int port, QWidget *parent)
-: QMainWindow(parent), m_host(host), m_port(port), m_socket(new QTcpSocket(this))
+#include "Chat.h"
+
+Messenger::Messenger(const QString &host, int port, QWidget *parent, const QString login)
+: QMainWindow(parent), login(login), m_host(host), m_port(port), m_socket(new QTcpSocket(this))
 {
     connectToServer(); //???
 
@@ -37,6 +39,10 @@ Messenger::Messenger(const QString &host, int port, QWidget *parent)
         stackedWidgets->addWidget(usersListWidget); // Индекс 1
 
         // Здесь могут быть добавлены существующие чаты в chatsListWidget...
+
+        // В конструкторе Messenger после инициализации виджетов добавляем следующие строки:
+        connect(usersListWidget, &QListWidget::itemClicked, this, &Messenger::onUserListItemClicked);
+        connect(chatsListWidget, &QListWidget::itemClicked, this, &Messenger::onChatListItemClicked);
 
         verticalLayout->addLayout(searchLayout);
         verticalLayout->addWidget(stackedWidgets);
@@ -73,7 +79,6 @@ void Messenger::performSearch()
         stackedWidgets->setCurrentIndex(0); // Показываем список чатов, если поле поиска пустое
     }
 }
-
 
 void Messenger::onConnected()
 {
@@ -120,6 +125,41 @@ void Messenger::processServerResponse(const QString &response)
     if (response.contains("search_end"))
     {
         // Обработка завершения поиска
+    }
+}
+
+void Messenger::onUserListItemClicked(QListWidgetItem *item) {
+    if (item) {
+        qDebug() << "Выбран пользователь: " << item->text();
+
+        // Предположим, что chatId можно получить из данных элемента списка
+        int chatId = item->data(Qt::UserRole).toInt();
+        Chat *chatWidget = new Chat(this, chatId); // Создаем виджет чата
+        // Подписываемся на сигнал для возврата к списку чатов
+        connect(chatWidget, &Chat::backToChatsList, this, [this, chatWidget]() {
+            stackedWidgets->setCurrentWidget(chatsListWidget); // Возвращаемся к списку чатов
+            chatWidget->deleteLater(); // Запрос удаления виджета чата
+        });
+
+        stackedWidgets->addWidget(chatWidget); // Добавляем виджет чата в стек
+        stackedWidgets->setCurrentWidget(chatWidget); // Показываем виджет чата
+    }
+}
+
+// Пример реализации слота, работающего со списком чатов
+void Messenger::onChatListItemClicked(QListWidgetItem *item) {
+    if (item) {
+        qDebug() << "Выбран чат: " << item->text();
+
+        int chatId = item->data(Qt::UserRole).toInt(); // Убедитесь, что chatId установлен в data
+        Chat *chatWidget = new Chat(this, chatId);
+        connect(chatWidget, &Chat::backToChatsList, this, [this, chatWidget]() {
+            stackedWidgets->setCurrentWidget(chatsListWidget);
+            chatWidget->deleteLater();
+        });
+
+        stackedWidgets->addWidget(chatWidget);
+        stackedWidgets->setCurrentWidget(chatWidget);
     }
 }
 

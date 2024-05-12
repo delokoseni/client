@@ -12,7 +12,7 @@ class Messenger : public QMainWindow {
     Q_OBJECT
 
 public:
-    explicit Messenger(const QString &host, int port, QWidget *parent = nullptr);
+    explicit Messenger(const QString &host, int port, QWidget *parent = nullptr, const QString login = "");
     void connectToServer();
 
 public slots:
@@ -20,9 +20,12 @@ public slots:
     void onConnected();
     void onReadyRead();
     void onSearchTextChanged(const QString &text);
+    void onUserListItemClicked(QListWidgetItem *item); // Обработчик клика по элементу пользователей
+    void onChatListItemClicked(QListWidgetItem *item);
 
 private:
     unsigned int window_width = 800, window_height = 600;
+    const QString login;
     QString m_host;
     int m_port;
     QTcpSocket *m_socket;
