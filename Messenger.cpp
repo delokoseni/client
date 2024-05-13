@@ -21,7 +21,7 @@ Messenger::Messenger(const QString &host, int port, QWidget *parent, const QStri
         searchEdit->setPlaceholderText("Поиск...");
         searchLayout->addWidget(searchEdit);
 
-        QPushButton *searchButton = new QPushButton("Найти");
+        searchButton = new QPushButton("Найти");
         searchLayout->addWidget(searchButton);
 
         QWidget *centralWidget = new QWidget(this);
@@ -128,8 +128,21 @@ void Messenger::processServerResponse(const QString &response)
     }
 }
 
+void Messenger::onHideInterfaceElements() {
+    searchEdit->hide();
+    exitButton->hide();
+    searchButton->hide();
+}
+
+void Messenger::onShowInterfaceElements() {
+    searchEdit->show();
+    exitButton->show();
+    searchButton->show();
+}
+
 void Messenger::onUserListItemClicked(QListWidgetItem *item) {
     if (item) {
+        onHideInterfaceElements();
         qDebug() << "Выбран пользователь: " << item->text();
         setWindowTitle(item->text());
         // Предположим, что chatId можно получить из данных элемента списка
@@ -138,6 +151,9 @@ void Messenger::onUserListItemClicked(QListWidgetItem *item) {
         // Подписываемся на сигнал для возврата к списку чатов
         connect(chatWidget, &Chat::backToChatsList, this, [this, chatWidget]() {
             stackedWidgets->setCurrentWidget(chatsListWidget); // Возвращаемся к списку чатов
+            onShowInterfaceElements();
+            searchEdit->clear();
+            setWindowTitle("Чаты");
             chatWidget->deleteLater(); // Запрос удаления виджета чата
         });
 

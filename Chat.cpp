@@ -20,10 +20,10 @@ void Chat::setupUi() {
     backButton = new QPushButton("Назад", this);
 
     layout = new QVBoxLayout(this);
+    layout->addWidget(backButton);
     layout->addWidget(messagesHistoryWidget);
     layout->addWidget(messageInputWidget);
     layout->addWidget(sendMessageButton);
-    layout->addWidget(backButton);
 
     setLayout(layout);
 }

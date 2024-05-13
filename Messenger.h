@@ -16,12 +16,14 @@ public:
     void connectToServer();
 
 public slots:
-    void performSearch(); // Слот для обработки поиска
+    void performSearch(); //Слот для обработки поиска
     void onConnected();
     void onReadyRead();
     void onSearchTextChanged(const QString &text);
-    void onUserListItemClicked(QListWidgetItem *item); // Обработчик клика по элементу пользователей
-    void onChatListItemClicked(QListWidgetItem *item);
+    void onUserListItemClicked(QListWidgetItem *item); //Обработчик клика по элементу пользователей
+    void onChatListItemClicked(QListWidgetItem *item);//Обработчик клика по элементу чатов
+    void onHideInterfaceElements();    // Слот для скрытия элементов интерфейса
+    void onShowInterfaceElements();
 
 private:
     unsigned int window_width = 800, window_height = 600;
@@ -30,9 +32,9 @@ private:
     int m_port;
     QTcpSocket *m_socket;
     QLineEdit *searchEdit;
-    QPushButton *exitButton;
-    QListWidget *usersListWidget; // Виджет для отображения списка пользователей
-    QListWidget *chatsListWidget; // Добавлен виджет для отображения существующих чатов
+    QPushButton *exitButton, *searchButton;
+    QListWidget *usersListWidget; //Виджет для отображения списка пользователей
+    QListWidget *chatsListWidget; //Виджет для отображения списка чатов
     QStackedWidget *stackedWidgets;
     void processServerResponse(const QString &response);
 

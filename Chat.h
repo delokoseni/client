@@ -17,7 +17,7 @@ public:
     ~Chat() override;
 
 signals:
-    void backToChatsList(); // Сигнал для возврата к списку чатов
+    void backToChatsList(); //Сигнал для возврата к списку чатов
 
 private slots:
     void sendMessage();
@@ -25,7 +25,7 @@ private slots:
     void onBackButtonClicked();
 
 private:
-    int chatId;
+    int chatId, userId;
     QTextEdit *messagesHistoryWidget;
     QLineEdit *messageInputWidget;
     QPushButton *sendMessageButton;
