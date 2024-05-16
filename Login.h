@@ -34,7 +34,7 @@ private slots:
 
 private:
     unsigned int window_width = 450, window_height = 300;
-    QString m_host;
+    QString m_host, login;
     int m_port;
     QTcpSocket *m_socket;
     QLabel *loginErrorLabel, *registerSuccessLabel, *errorLabel;

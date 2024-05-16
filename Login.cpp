@@ -150,6 +150,7 @@ void Login::sendLoginRequest(const QString &username, const QString &password)
     if (!username.isEmpty() && !password.isEmpty() && m_socket->isOpen())
     {
          QTextStream stream(m_socket);
+         login = username;
          stream << "login:" << username << ":" << password << '\n';
          stream.flush();
      } else
@@ -169,13 +170,10 @@ void Login::onReadyRead()
     QString response = stream.readAll().trimmed();
     // Проверка ответа сервера на успешный вход
     QStringList parts = response.split(":");
-    QString Login;
     if (response.startsWith("login:success")) {
-        if (parts.size() >= 3)
-            Login = parts[2];
         // Создаем окно чата
         this->hide();
-        Messenger *messenger = new Messenger("127.0.0.1", 3000, nullptr, Login);
+        Messenger *messenger = new Messenger("127.0.0.1", 3000, nullptr, login);
         messenger->show();
         messenger->setAttribute(Qt::WA_DeleteOnClose); // Установить флаг для автоматического удаления
         // Закрыть текущее окно входа

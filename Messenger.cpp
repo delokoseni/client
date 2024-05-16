@@ -90,18 +90,19 @@ void Messenger::onReadyRead()
     QTextStream stream(m_socket);
     QString buffer;
 
-    while (!stream.atEnd())
-    {
-        QString line = stream.readLine().trimmed();
-        qDebug() << "Response: " << line;
-        buffer += line + "\n"; // Добавляем перенос строки для корректного разделения
-
-        if (line == "search_end") // Если обнаружен конец сообщения
-        {
-            processServerResponse(buffer.trimmed()); // Обрабатываем весь собранный ответ
-            buffer.clear(); // Очищаем буфер после обработки
+    while (!stream.atEnd()) {
+            QString line = stream.readLine().trimmed();
+            qDebug() << "Response: " << line;
+            if (line == "search_end") { // Проверяем, является ли line сигналом окончания блока поиска
+                processServerResponse(buffer.trimmed()); // Обрабатываем весь собранный ответ как блок
+                buffer.clear(); // Сбрасываем buffer после обработки
+            } else {
+                buffer += line + "\n"; // Если это не конец, продолжаем "сборку" блока
+            }
+            if (!line.startsWith("search_result:") && !line.isEmpty()) {
+                processServerResponse(line); // Обрабатываем каждую независимую строку отдельно
+            }
         }
-    }
 }
 
 void Messenger::onSearchTextChanged(const QString &text)
@@ -145,9 +146,20 @@ void Messenger::onUserListItemClicked(QListWidgetItem *item) {
         onHideInterfaceElements();
         qDebug() << "Выбран пользователь: " << item->text();
         setWindowTitle(item->text());
-        // Предположим, что chatId можно получить из данных элемента списка
-        int chatId = item->data(Qt::UserRole).toInt();
-        Chat *chatWidget = new Chat(this, chatId); // Создаем виджет чата
+
+        QString selectedUserLogin = item->text();
+
+        // отправляем запрос на сервер для создания нового чата с выбранным пользователем
+                if (m_socket->isOpen()) {
+                    QTextStream stream(m_socket);
+                    qDebug() << "Login: " << login << "\n";
+                    stream << "create_chat:" << login + selectedUserLogin<< ":personal\n";  // login - ваш текущий пользователь
+                    stream.flush();
+                }
+
+
+        Chat *chatWidget = new Chat(this); // Создаем виджет чата
+
         // Подписываемся на сигнал для возврата к списку чатов
         connect(chatWidget, &Chat::backToChatsList, this, [this, chatWidget]() {
             stackedWidgets->setCurrentWidget(chatsListWidget); // Возвращаемся к списку чатов
