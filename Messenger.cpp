@@ -153,7 +153,7 @@ void Messenger::onUserListItemClicked(QListWidgetItem *item) {
                 if (m_socket->isOpen()) {
                     QTextStream stream(m_socket);
                     qDebug() << "Login: " << login << "\n";
-                    stream << "create_chat:" << login + selectedUserLogin<< ":personal\n";  // login - ваш текущий пользователь
+                    stream << "create_chat:" << login + selectedUserLogin<< ":personal:" << login << ":" << selectedUserLogin << "\n";
                     stream.flush();
                 }
 
