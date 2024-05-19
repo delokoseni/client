@@ -24,6 +24,7 @@ public slots:
     void onChatListItemClicked(QListWidgetItem *item);//Обработчик клика по элементу чатов
     void onHideInterfaceElements();    // Слот для скрытия элементов интерфейса
     void onShowInterfaceElements();
+    void refreshChatsList();
 
 private:
     unsigned int window_width = 800, window_height = 600;

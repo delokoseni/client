@@ -83,6 +83,7 @@ void Messenger::performSearch()
 void Messenger::onConnected()
 {
     qDebug() << "Connected to server.";
+    refreshChatsList();
 }
 
 void Messenger::onReadyRead()
@@ -115,9 +116,18 @@ void Messenger::onSearchTextChanged(const QString &text)
 
 void Messenger::processServerResponse(const QString &response)
 {
-    QStringList lines = response.split('\n'); // Разделяем буфер по строкам
-    for (const QString &line : lines) {
-        if (line.startsWith("search_result:")) {
+    QStringList lines = response.split('\n');
+        for (const QString &line : lines) {
+            if (line.startsWith("chat_list_item:")) {
+                QStringList parts = line.split(":");
+                if (parts.count() < 3) continue;
+
+                QString chatId = parts.at(1);
+                QString chatName = parts.at(2);
+                QListWidgetItem *chatItem = new QListWidgetItem(chatName);
+                chatItem->setData(Qt::UserRole, chatId);
+                chatsListWidget->addItem(chatItem);
+            } else if (line.startsWith("search_result:")) {
             QString username = line.section(':', 1, 1); // Получаем часть между двумя ':'
             usersListWidget->addItem(new QListWidgetItem(username));
         }
@@ -188,6 +198,14 @@ void Messenger::onChatListItemClicked(QListWidgetItem *item) {
 
         stackedWidgets->addWidget(chatWidget);
         stackedWidgets->setCurrentWidget(chatWidget);
+    }
+}
+
+void Messenger::refreshChatsList() {
+    if (m_socket->isOpen()) {
+        QTextStream stream(m_socket);
+        stream << "get_chats:" << login << "\n"; // login - логин текущего пользователя
+        stream.flush();
     }
 }
 
