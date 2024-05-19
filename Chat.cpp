@@ -34,19 +34,17 @@ void Chat::connectSignalsAndSlots() {
     connect(backButton, &QPushButton::clicked, this, &Chat::onBackButtonClicked);
 }
 
-void Chat::loadMessages() { //Переписать
-    QSqlQuery query;
-    query.prepare("SELECT message_text FROM messages WHERE chat_id = :chatId ORDER BY timestamp_sent ASC");
-    query.bindValue(":chatId", chatId);
-    if (query.exec()) {
-        while (query.next()) {
-            QString message = query.value(0).toString();
-            messagesHistoryWidget->append(message);
-        }
+void Chat::loadMessages() {
+    if (m_socket->isOpen()) {
+        QTextStream stream(m_socket);
+        stream << "get_messages:" << chatId << "\n"; // Формируем запрос на сервер для получения сообщений
+        stream.flush();
     } else {
-        // Обработать ошибку выполнения запроса
+        // Обработка ошибки подключения
+        qDebug() << "Socket is not open. Cannot load messages.";
     }
 }
+
 
 void Chat::sendMessage() {
     // Реализация отправки сообщений в базу данных
@@ -59,7 +57,7 @@ void Chat::sendMessage() {
             stream << "send_message:" << chatId << ":" << userId << ":" << messageText << "\n";
             stream.flush();
             QString messageHtml = QString("<div style='text-align: right;'>%1</div>").arg(messageText);
-            messagesHistoryWidget->append(messageText);
+            messagesHistoryWidget->append(messageHtml); // Используйте messageHtml здесь
             messageInputWidget->clear(); // Очищаем messageInputWidget
         }
         else {
@@ -91,16 +89,20 @@ void Chat::onReadyRead()
     while (!stream.atEnd()) {
         QString line = stream.readLine().trimmed(); // Читаем строку за строкой
 
-        // Проверяем успешность отправки сообщения
         if (line.startsWith("send_message:success")) {
-            // Сообщение успешно доставлено и можно, например, очистить поле ввода, если это необходимо
             qDebug() << "Message sent successfully.";
         } else if (line.startsWith("send_message:fail")) {
             QString errorMessage = line.section(':', 2); // Получаем сообщение об ошибке
             qDebug() << "Failed to send message:" << errorMessage;
-            // Здесь можно уведомить пользователя об ошибке через интерфейс
+        } else if (line.startsWith("message_item:")) {
+            QString message = line.section(':', 1); // Получаем текст сообщения
+            // Здесь вы можете использовать messagesHistoryWidget для отображения сообщения
+            messagesHistoryWidget->append(message);
+        } else if (line == "end_of_messages") {
+            qDebug() << "All messages have been received.";
+            // Здесь можете выполнить любые действия после получения всех сообщений
         }
-        // Обработка других команд
+        // Обработка других команд...
     }
 }
 
