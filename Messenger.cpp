@@ -167,9 +167,9 @@ void Messenger::onUserListItemClicked(QListWidgetItem *item) {
             stream << "create_chat:" << login + selectedUserLogin<< ":personal:" << login << ":" << selectedUserLogin << "\n";
             stream.flush();
         }
-
+        qDebug() << "Login: " << login << "\n";
         int chatId = item->data(Qt::UserRole).toInt();
-        Chat *chatWidget = new Chat(m_host, m_port, this, chatId); // Создаем виджет чата
+        Chat *chatWidget = new Chat(m_host, m_port, this, chatId, login); // Создаем виджет чата
 
         // Подписываемся на сигнал для возврата к списку чатов
         connect(chatWidget, &Chat::backToChatsList, this, [this, chatWidget]() {
@@ -191,8 +191,9 @@ void Messenger::onChatListItemClicked(QListWidgetItem *item) {
         onHideInterfaceElements();
         qDebug() << "Выбран чат: " << item->text();
         setWindowTitle(item->text());
-        int chatId = item->data(Qt::UserRole).toInt(); // Убедитесь, что chatId установлен в data НЕ УСТАНОВЛЕН!!!
-        Chat *chatWidget = new Chat(m_host, m_port, this, chatId); // Создаем виджет чата
+        qDebug() << "Login: " << login << "\n";
+        int chatId = item->data(Qt::UserRole).toInt();
+        Chat *chatWidget = new Chat(m_host, m_port, this, chatId, login); // Создаем виджет чата
         connect(chatWidget, &Chat::backToChatsList, this, [this, chatWidget]() {
             stackedWidgets->setCurrentWidget(chatsListWidget);
             chatWidget->deleteLater();

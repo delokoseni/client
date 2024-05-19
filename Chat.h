@@ -14,7 +14,7 @@ class Chat : public QWidget {
     Q_OBJECT
 
 public:
-    explicit Chat(const QString &host, int port, QWidget *parent = nullptr, int chatId = -1);
+    explicit Chat(const QString &host, int port, QWidget *parent = nullptr, int chatId = -1, const QString login = "");
     ~Chat() override;
     void connectToServer();
 
@@ -38,10 +38,12 @@ private:
     int m_port;
     QString m_host;
     QTcpSocket *m_socket;
+    const QString login;
 
     void setupUi();
     void connectSignalsAndSlots();
     void retrieveMessages();
+    void requestUserId(const QString &login);
 };
 
 #endif // CHAT_H

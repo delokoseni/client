@@ -1,11 +1,13 @@
 #include "Chat.h"
 #include <QSqlQueryModel>
 
-Chat::Chat(const QString &host, int port, QWidget *parent, int _chatId)
-    : QWidget(parent), m_host(host), m_port(port), chatId(_chatId), m_socket(new QTcpSocket(this)) {
+Chat::Chat(const QString &host, int port, QWidget *parent, int _chatId, const QString login)
+    : QWidget(parent), login(login), m_host(host), m_port(port), chatId(_chatId), m_socket(new QTcpSocket(this)) {
     connectToServer();
     setupUi();
     connectSignalsAndSlots();
+    qDebug() << "Login: " << login << "\n";
+    qDebug() << "Login: " << this->login << "\n";
     loadMessages();
 }
 
@@ -37,10 +39,9 @@ void Chat::connectSignalsAndSlots() {
 void Chat::loadMessages() {
     if (m_socket->isOpen()) {
         QTextStream stream(m_socket);
-        stream << "get_messages:" << chatId << "\n"; // Формируем запрос на сервер для получения сообщений
+        stream << "get_messages:" << chatId << "\n";
         stream.flush();
     } else {
-        // Обработка ошибки подключения
         qDebug() << "Socket is not open. Cannot load messages.";
     }
 }
@@ -53,7 +54,6 @@ void Chat::sendMessage() {
     if (!messageText.isEmpty()) {
         if (m_socket->isOpen()) {
             QTextStream stream(m_socket);
-            userId = 1; // Изменить
             stream << "send_message:" << chatId << ":" << userId << ":" << messageText << "\n";
             stream.flush();
             QString messageHtml = QString("<div style='text-align: right;'>%1</div>").arg(messageText);
@@ -96,13 +96,26 @@ void Chat::onReadyRead()
             qDebug() << "Failed to send message:" << errorMessage;
         } else if (line.startsWith("message_item:")) {
             QString message = line.section(':', 1); // Получаем текст сообщения
-            // Здесь вы можете использовать messagesHistoryWidget для отображения сообщения
-            messagesHistoryWidget->append(message);
+            messagesHistoryWidget->append(message); // Показываем сообщение в истории сообщений
         } else if (line == "end_of_messages") {
             qDebug() << "All messages have been received.";
-            // Здесь можете выполнить любые действия после получения всех сообщений
+            requestUserId(this->login);
+        } else if (line.startsWith("user_id:")) {
+            qDebug() << "Login: " << login << "\n";
+            userId = line.section(':', 1).toInt();
+            qDebug() << "User ID for requested login is:" << userId;
         }
         // Обработка других команд...
     }
 }
 
+void Chat::requestUserId(const QString &login) {
+    qDebug() << "Login: " << login << "\n";
+    if (m_socket->isOpen()) {
+        QTextStream stream(m_socket);
+        stream << "get_user_id:" << login << "\n"; // Перенос строки добавлен сразу после запроса
+        stream.flush();
+    } else {
+        qDebug() << "Socket is not open. Cannot request user ID.";
+    }
+}
