@@ -149,6 +149,7 @@ void Messenger::onShowInterfaceElements() {
     searchEdit->show();
     exitButton->show();
     searchButton->show();
+    refreshChatsList();
 }
 
 void Messenger::onUserListItemClicked(QListWidgetItem *item) {
@@ -160,12 +161,12 @@ void Messenger::onUserListItemClicked(QListWidgetItem *item) {
         QString selectedUserLogin = item->text();
 
         // отправляем запрос на сервер для создания нового чата с выбранным пользователем
-                if (m_socket->isOpen()) {
-                    QTextStream stream(m_socket);
-                    qDebug() << "Login: " << login << "\n";
-                    stream << "create_chat:" << login + selectedUserLogin<< ":personal:" << login << ":" << selectedUserLogin << "\n";
-                    stream.flush();
-                }
+        if (m_socket->isOpen()) {
+            QTextStream stream(m_socket);
+            qDebug() << "Login: " << login << "\n";
+            stream << "create_chat:" << login + selectedUserLogin<< ":personal:" << login << ":" << selectedUserLogin << "\n";
+            stream.flush();
+        }
 
 
         Chat *chatWidget = new Chat(this); // Создаем виджет чата
@@ -187,6 +188,7 @@ void Messenger::onUserListItemClicked(QListWidgetItem *item) {
 // Пример реализации слота, работающего со списком чатов
 void Messenger::onChatListItemClicked(QListWidgetItem *item) {
     if (item) {
+        onHideInterfaceElements();
         qDebug() << "Выбран чат: " << item->text();
         setWindowTitle(item->text());
         int chatId = item->data(Qt::UserRole).toInt(); // Убедитесь, что chatId установлен в data НЕ УСТАНОВЛЕН!!!
@@ -195,7 +197,13 @@ void Messenger::onChatListItemClicked(QListWidgetItem *item) {
             stackedWidgets->setCurrentWidget(chatsListWidget);
             chatWidget->deleteLater();
         });
-
+        // Подписываемся на сигнал для возврата к списку чатов
+        connect(chatWidget, &Chat::backToChatsList, this, [this] () {
+            stackedWidgets->setCurrentWidget(chatsListWidget); // Возвращаемся к списку чатов
+            onShowInterfaceElements();
+            searchEdit->clear();
+            setWindowTitle("Чаты");
+        });
         stackedWidgets->addWidget(chatWidget);
         stackedWidgets->setCurrentWidget(chatWidget);
     }
@@ -204,6 +212,7 @@ void Messenger::onChatListItemClicked(QListWidgetItem *item) {
 void Messenger::refreshChatsList() {
     if (m_socket->isOpen()) {
         QTextStream stream(m_socket);
+        chatsListWidget->clear();
         stream << "get_chats:" << login << "\n"; // login - логин текущего пользователя
         stream.flush();
     }
