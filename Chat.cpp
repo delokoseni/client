@@ -6,9 +6,7 @@ Chat::Chat(const QString &host, int port, QWidget *parent, int _chatId, const QS
     connectToServer();
     setupUi();
     connectSignalsAndSlots();
-    qDebug() << "Login: " << login << "\n";
-    qDebug() << "Login: " << this->login << "\n";
-    loadMessages();
+    requestUserId(this->login);
 }
 
 Chat::~Chat() {}
@@ -46,25 +44,40 @@ void Chat::loadMessages() {
     }
 }
 
-
 void Chat::sendMessage() {
-    // Реализация отправки сообщений в базу данных
     qDebug() << "Нажатие кнопки\n";
     QString messageText = messageInputWidget->text();
+
     if (!messageText.isEmpty()) {
         if (m_socket->isOpen()) {
             QTextStream stream(m_socket);
             stream << "send_message:" << chatId << ":" << userId << ":" << messageText << "\n";
             stream.flush();
-            QString messageHtml = QString("<div style='text-align: right;'>%1</div>").arg(messageText);
-            messagesHistoryWidget->append(messageHtml); // Используйте messageHtml здесь
-            messageInputWidget->clear(); // Очищаем messageInputWidget
-        }
-        else {
+
+            // Создаем QTextCursor, связанный с QTextEdit
+            QTextCursor cursor(messagesHistoryWidget->textCursor());
+            cursor.movePosition(QTextCursor::End); // Перемещаем курсор к концу текста
+
+            QTextBlockFormat blockFormat;
+            blockFormat.setAlignment(Qt::AlignRight); // Выравниваем текст справа
+            blockFormat.setRightMargin(0);
+            blockFormat.setLeftMargin(0);
+
+            // Установка формата текста для исходящих сообщений пользователя
+            QTextCharFormat charFormat;
+            charFormat.setForeground(QBrush(Qt::blue));
+
+            cursor.insertBlock(blockFormat, charFormat); // Вставляем новый блок с данным форматом
+            cursor.insertText(messageText); // Вставляем текст сообщения
+
+            // Очищаем поле ввода сообщения
+            messageInputWidget->clear();
+        } else {
             // Обработать ошибку выполнения запроса
         }
     }
 }
+
 
 void Chat::onBackButtonClicked() {
     emit backToChatsList();
@@ -92,22 +105,53 @@ void Chat::onReadyRead()
         if (line.startsWith("send_message:success")) {
             qDebug() << "Message sent successfully.";
         } else if (line.startsWith("send_message:fail")) {
-            QString errorMessage = line.section(':', 2); // Получаем сообщение об ошибке
+            QString errorMessage = line.section(':', 2, -1); // Получаем сообщение об ошибке
             qDebug() << "Failed to send message:" << errorMessage;
         } else if (line.startsWith("message_item:")) {
-            QString message = line.section(':', 1); // Получаем текст сообщения
-            messagesHistoryWidget->append(message); // Показываем сообщение в истории сообщений
+            int lastColonIndex = line.lastIndexOf(':');
+            if (lastColonIndex != -1) {
+                QString messageText = line.mid(13, lastColonIndex - 13); // Извлекаем текст сообщения
+                int senderId = line.mid(lastColonIndex + 1).toInt(); // Извлекаем user_id
+
+                // Создаем QTextCursor, связанный с QTextEdit
+                QTextCursor cursor(messagesHistoryWidget->textCursor());
+                cursor.movePosition(QTextCursor::End); // Перемещаем курсор к концу текста
+
+                QTextBlockFormat blockFormat;
+                blockFormat.setRightMargin(0); // Устанавливаем отступы
+                blockFormat.setLeftMargin(0);
+
+                // Выбираем выравнивание в зависимости от отправителя
+                if (senderId == userId) {
+                    blockFormat.setAlignment(Qt::AlignRight);
+                    // Установка формата текста для сообщений пользователя
+                    QTextCharFormat charFormat;
+                    charFormat.setForeground(QBrush(Qt::blue));
+                    cursor.setBlockFormat(blockFormat); // Применяем формат блока
+                    cursor.setBlockCharFormat(charFormat); // Применяем формат символов
+                } else {
+                    blockFormat.setAlignment(Qt::AlignLeft);
+                    // Установка формата текста для сообщений от других пользователей
+                    QTextCharFormat charFormat;
+                    charFormat.setForeground(QBrush(Qt::black));
+                    cursor.setBlockFormat(blockFormat); // Применяем формат блока
+                    cursor.setBlockCharFormat(charFormat); // Применяем формат символов
+                }
+
+                cursor.insertText(messageText); // Вставляем текст сообщения
+                cursor.insertBlock(); // Вставляем новый блок для следующего сообщения
+            }
         } else if (line == "end_of_messages") {
             qDebug() << "All messages have been received.";
-            requestUserId(this->login);
         } else if (line.startsWith("user_id:")) {
-            qDebug() << "Login: " << login << "\n";
             userId = line.section(':', 1).toInt();
             qDebug() << "User ID for requested login is:" << userId;
+            loadMessages();
         }
         // Обработка других команд...
     }
 }
+
 
 void Chat::requestUserId(const QString &login) {
     qDebug() << "Login: " << login << "\n";
