@@ -169,7 +169,11 @@ void Messenger::onUserListItemClicked(QListWidgetItem *item) {
         }
         qDebug() << "Login: " << login << "\n";
         int chatId = item->data(Qt::UserRole).toInt();
-        Chat *chatWidget = new Chat(m_host, m_port, this, chatId, login); // Создаем виджет чата
+
+        disconnect(m_socket, &QTcpSocket::connected, this, &Messenger::onConnected);
+        disconnect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
+
+        Chat *chatWidget = new Chat(m_socket, chatId, login); // Создаем виджет чата
 
         // Подписываемся на сигнал для возврата к списку чатов
         connect(chatWidget, &Chat::backToChatsList, this, [this, chatWidget]() {
@@ -177,6 +181,10 @@ void Messenger::onUserListItemClicked(QListWidgetItem *item) {
             onShowInterfaceElements();
             searchEdit->clear();
             setWindowTitle("Чаты");
+
+            connect(m_socket, &QTcpSocket::connected, this, &Messenger::onConnected);
+            connect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
+
             chatWidget->deleteLater(); // Запрос удаления виджета чата
         });
 
@@ -193,17 +201,22 @@ void Messenger::onChatListItemClicked(QListWidgetItem *item) {
         setWindowTitle(item->text());
         qDebug() << "Login: " << login << "\n";
         int chatId = item->data(Qt::UserRole).toInt();
-        Chat *chatWidget = new Chat(m_host, m_port, this, chatId, login); // Создаем виджет чата
-        connect(chatWidget, &Chat::backToChatsList, this, [this, chatWidget]() {
-            stackedWidgets->setCurrentWidget(chatsListWidget);
-            chatWidget->deleteLater();
-        });
+
+        disconnect(m_socket, &QTcpSocket::connected, this, &Messenger::onConnected);
+        disconnect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
+
+        Chat *chatWidget = new Chat(m_socket, chatId, login); // Создаем виджет чата
         // Подписываемся на сигнал для возврата к списку чатов
-        connect(chatWidget, &Chat::backToChatsList, this, [this] () {
+        connect(chatWidget, &Chat::backToChatsList, this, [this, chatWidget] () {
             stackedWidgets->setCurrentWidget(chatsListWidget); // Возвращаемся к списку чатов
             onShowInterfaceElements();
             searchEdit->clear();
             setWindowTitle("Чаты");
+
+            connect(m_socket, &QTcpSocket::connected, this, &Messenger::onConnected);
+            connect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
+            chatWidget->deleteLater();
+
         });
         stackedWidgets->addWidget(chatWidget);
         stackedWidgets->setCurrentWidget(chatWidget);

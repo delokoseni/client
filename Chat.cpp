@@ -1,15 +1,12 @@
 #include "Chat.h"
 #include <QSqlQueryModel>
 
-Chat::Chat(const QString &host, int port, QWidget *parent, int _chatId, const QString login)
-    : QWidget(parent), login(login), m_host(host), m_port(port), chatId(_chatId), m_socket(new QTcpSocket(this)) {
-    connectToServer();
+Chat::Chat(QTcpSocket* socket, int chatId, const QString& login, QWidget* parent)
+    : QWidget(parent), chatId(chatId), m_socket(socket), login(login) {
     setupUi();
     connectSignalsAndSlots();
     requestUserId(this->login);
 }
-
-Chat::~Chat() {}
 
 void Chat::setupUi() {
     messagesHistoryWidget = new QTextEdit(this);
@@ -32,6 +29,8 @@ void Chat::setupUi() {
 void Chat::connectSignalsAndSlots() {
     connect(sendMessageButton, &QPushButton::clicked, this, &Chat::sendMessage);
     connect(backButton, &QPushButton::clicked, this, &Chat::onBackButtonClicked);
+    connect(m_socket, &QTcpSocket::connected, this, &Chat::onConnected);
+    connect(m_socket, &QTcpSocket::readyRead, this, &Chat::onReadyRead);
 }
 
 void Chat::loadMessages() {
@@ -78,17 +77,9 @@ void Chat::sendMessage() {
     }
 }
 
-
 void Chat::onBackButtonClicked() {
     emit backToChatsList();
     this->deleteLater();
-}
-
-void Chat::connectToServer()
-{
-    connect(m_socket, &QTcpSocket::connected, this, &Chat::onConnected);
-    connect(m_socket, &QTcpSocket::readyRead, this, &Chat::onReadyRead); // Устанавливаем соединение сигнала с слотом
-    m_socket->connectToHost(m_host, m_port);
 }
 
 void Chat::onConnected()

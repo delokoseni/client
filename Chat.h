@@ -14,9 +14,7 @@ class Chat : public QWidget {
     Q_OBJECT
 
 public:
-    explicit Chat(const QString &host, int port, QWidget *parent = nullptr, int chatId = -1, const QString login = "");
-    ~Chat() override;
-    void connectToServer();
+    explicit Chat(QTcpSocket* socket, int chatId, const QString& login, QWidget* parent = nullptr);
 
 signals:
     void backToChatsList(); //Сигнал для возврата к списку чатов
@@ -29,14 +27,12 @@ private slots:
     void onReadyRead();
 
 private:
-    int chatId, userId;
+    int chatId, userId = 0;
     QTextEdit *messagesHistoryWidget;
     QLineEdit *messageInputWidget;
     QPushButton *sendMessageButton;
     QPushButton *backButton;
     QVBoxLayout *layout;
-    int m_port;
-    QString m_host;
     QTcpSocket *m_socket;
     const QString login;
 
