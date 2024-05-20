@@ -7,6 +7,5 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     Login client("127.0.0.1", 3000);
     client.show();
-    client.connectToServer();
     return app.exec();
 }

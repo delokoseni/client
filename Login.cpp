@@ -2,6 +2,7 @@
 
 Login::Login(const QString &host, int port, QWidget *parent) : QMainWindow(parent), m_host(host), m_port(port), m_socket(new QTcpSocket(this))
 {
+    connectToServer();
     setWindowTitle("Вход"); // Установка названия окна
     resize(window_width, window_height); // Установка размеров окна
 
@@ -132,10 +133,6 @@ Login::Login(const QString &host, int port, QWidget *parent) : QMainWindow(paren
         }
     });
 
-    connect(m_socket, &QTcpSocket::connected, this, &Login::onConnected);
-
-    connect(m_socket, &QTcpSocket::readyRead, this, &Login::onReadyRead);
-
 }
 
 void Login::connectToServer()
@@ -192,7 +189,5 @@ void Login::onReadyRead()
         registerSuccessLabel->show();
         QTimer::singleShot(5000, registerSuccessLabel, &QLabel::hide);
     }
-
-
 }
 
