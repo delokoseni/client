@@ -15,6 +15,7 @@ class Chat : public QWidget {
 
 public:
     explicit Chat(QTcpSocket* socket, int chatId, const QString& login, QWidget* parent = nullptr);
+    void requestUserId(const QString &login);
 
 signals:
     void backToChatsList(); //Сигнал для возврата к списку чатов
@@ -39,7 +40,6 @@ private:
     void setupUi();
     void connectSignalsAndSlots();
     void retrieveMessages();
-    void requestUserId(const QString &login);
 };
 
 #endif // CHAT_H

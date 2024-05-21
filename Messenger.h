@@ -12,7 +12,7 @@ class Messenger : public QMainWindow {
     Q_OBJECT
 
 public:
-    explicit Messenger(const QString &host, int port, QWidget *parent = nullptr, const QString login = "");
+    explicit Messenger(QTcpSocket* socket, QWidget *parent = nullptr, const QString login = "");
     void connectToServer();
 
 public slots:
@@ -29,8 +29,6 @@ public slots:
 private:
     unsigned int window_width = 800, window_height = 600;
     const QString login;
-    QString m_host;
-    int m_port;
     QTcpSocket *m_socket;
     QLineEdit *searchEdit;
     QPushButton *exitButton, *searchButton;

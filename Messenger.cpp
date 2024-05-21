@@ -8,10 +8,10 @@
 
 #include "Chat.h"
 
-Messenger::Messenger(const QString &host, int port, QWidget *parent, const QString login)
-: QMainWindow(parent), login(login), m_host(host), m_port(port), m_socket(new QTcpSocket(this))
+Messenger::Messenger(QTcpSocket* socket, QWidget *parent, const QString login)
+: QMainWindow(parent), login(login), m_socket(socket)
 {
-    connectToServer(); //???
+    connectToServer();
 
         setWindowTitle("Чаты");
         resize(window_width, window_height);
@@ -50,13 +50,13 @@ Messenger::Messenger(const QString &host, int port, QWidget *parent, const QStri
         exitButton = new QPushButton("Выйти");
         verticalLayout->addWidget(exitButton);
         connect(exitButton, &QPushButton::clicked, this, &Messenger::close);
+        refreshChatsList();
 }
 
 void Messenger::connectToServer()
 {
     connect(m_socket, &QTcpSocket::connected, this, &Messenger::onConnected);
     connect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead); // Устанавливаем соединение сигнала с слотом
-    m_socket->connectToHost(m_host, m_port);
 }
 
 void Messenger::performSearch()

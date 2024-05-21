@@ -24,7 +24,7 @@ class Login : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit Login(const QString &host, int port, QWidget *parent = nullptr);
+    explicit Login(QTcpSocket* socket, QWidget *parent = nullptr);
     void connectToServer();
     void sendLoginRequest(const QString &username, const QString &password);
 
@@ -34,8 +34,7 @@ private slots:
 
 private:
     unsigned int window_width = 450, window_height = 300;
-    QString m_host, login;
-    int m_port;
+    QString login;
     QTcpSocket *m_socket;
     QLabel *loginErrorLabel, *registerSuccessLabel, *errorLabel;
     QStackedWidget *stackedWidget;

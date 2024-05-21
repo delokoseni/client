@@ -1,6 +1,6 @@
 #include "Login.h"
 
-Login::Login(const QString &host, int port, QWidget *parent) : QMainWindow(parent), m_host(host), m_port(port), m_socket(new QTcpSocket(this))
+Login::Login(QTcpSocket* socket, QWidget *parent) : QMainWindow(parent), m_socket(socket)
 {
     connectToServer();
     setWindowTitle("Вход"); // Установка названия окна
@@ -139,7 +139,6 @@ void Login::connectToServer()
 {
     connect(m_socket, &QTcpSocket::connected, this, &Login::onConnected);
     connect(m_socket, &QTcpSocket::readyRead, this, &Login::onReadyRead); // Устанавливаем соединение сигнала с слотом
-    m_socket->connectToHost(m_host, m_port);
 }
 
 void Login::sendLoginRequest(const QString &username, const QString &password)
@@ -170,7 +169,9 @@ void Login::onReadyRead()
     if (response.startsWith("login:success")) {
         // Создаем окно чата
         this->hide();
-        Messenger *messenger = new Messenger("127.0.0.1", 3000, nullptr, login);
+        disconnect(m_socket, &QTcpSocket::connected, this, &Login::onConnected);
+        disconnect(m_socket, &QTcpSocket::readyRead, this, &Login::onReadyRead);
+        Messenger *messenger = new Messenger(m_socket, nullptr, login);
         messenger->show();
         messenger->setAttribute(Qt::WA_DeleteOnClose); // Установить флаг для автоматического удаления
         // Закрыть текущее окно входа
