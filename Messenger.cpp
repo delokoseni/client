@@ -231,4 +231,3 @@ void Messenger::refreshChatsList() {
         stream.flush();
     }
 }
-

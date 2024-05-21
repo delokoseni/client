@@ -191,4 +191,3 @@ void Login::onReadyRead()
         QTimer::singleShot(5000, registerSuccessLabel, &QLabel::hide);
     }
 }
-
