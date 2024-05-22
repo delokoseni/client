@@ -68,9 +68,10 @@ void Messenger::performSearch()
         {
             usersListWidget->clear();
             QTextStream stream(m_socket);
-            stream << "search:" << searchText << '\n';
+            // Включаем логин пользователя в запрос поиска
+            stream << "search:" << searchText << ":" << login << '\n';
             stream.flush();
-            qDebug() << "search:" << searchText << '\n';
+            qDebug() << "search:" << searchText << "requested by user:" << login << '\n';
         }
         stackedWidgets->setCurrentIndex(1); // Показываем результаты поиска
     }
@@ -79,6 +80,7 @@ void Messenger::performSearch()
         stackedWidgets->setCurrentIndex(0); // Показываем список чатов, если поле поиска пустое
     }
 }
+
 
 void Messenger::onConnected()
 {
@@ -102,12 +104,6 @@ void Messenger::onReadyRead()
             }
             if (!line.startsWith("search_result:") && !line.isEmpty()) {
                 processServerResponse(line); // Обрабатываем каждую независимую строку отдельно
-            }
-            if (line.startsWith("create_chat:"))
-            {
-                QStringList parts = line.split(":");
-                newChatId = parts.at(2).toInt();
-                qDebug() << "New chat id: " << newChatId << "\n";
             }
         }
 }
@@ -177,11 +173,11 @@ void Messenger::onUserListItemClicked(QListWidgetItem *item) {
 
         //item->setData(Qt::UserRole, newChatId);
         //int chatId = item->data(Qt::UserRole).toInt();
-        int chatId = newChatId;
-        //disconnect(m_socket, &QTcpSocket::connected, this, &Messenger::onConnected);
-        //disconnect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
+        //int chatId = newChatId;
+        disconnect(m_socket, &QTcpSocket::connected, this, &Messenger::onConnected);
+        disconnect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
 
-        Chat *chatWidget = new Chat(m_socket, chatId, login); // Создаем виджет чата
+        Chat *chatWidget = new Chat(m_socket, 0, login); // Создаем виджет чата
 
         // Подписываемся на сигнал для возврата к списку чатов
         connect(chatWidget, &Chat::backToChatsList, this, [this, chatWidget]() {

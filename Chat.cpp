@@ -138,6 +138,11 @@ void Chat::onReadyRead()
             userId = line.section(':', 1).toInt();
             qDebug() << "User ID for requested login is:" << userId;
             loadMessages();
+        } else if (line.startsWith("create_chat:"))
+        {
+            QStringList parts = line.split(":");
+            chatId = parts.at(2).toInt();
+            qDebug() << "New chat id: " << chatId << "\n";
         }
         // Обработка других команд...
     }
