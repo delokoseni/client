@@ -1,5 +1,6 @@
 #include "Chat.h"
 #include <QSqlQueryModel>
+#include <QScrollBar>
 
 Chat::Chat(QTcpSocket* socket, int chatId, const QString& login, QWidget* parent)
     : QWidget(parent), chatId(chatId), m_socket(socket), login(login) {
@@ -71,6 +72,8 @@ void Chat::sendMessage() {
 
             // Очищаем поле ввода сообщения
             messageInputWidget->clear();
+            QScrollBar *scrollBar = messagesHistoryWidget->verticalScrollBar();
+            scrollBar->setValue(scrollBar->maximum());
         } else {
             // Обработать ошибку выполнения запроса
         }
@@ -134,6 +137,8 @@ void Chat::onReadyRead()
             }
         } else if (line == "end_of_messages") {
             qDebug() << "All messages have been received.";
+            QScrollBar *scrollBar = messagesHistoryWidget->verticalScrollBar();
+            scrollBar->setValue(scrollBar->maximum());
         } else if (line.startsWith("user_id:")) {
             userId = line.section(':', 1).toInt();
             qDebug() << "User ID for requested login is:" << userId;
