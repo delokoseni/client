@@ -36,7 +36,7 @@ void Chat::connectSignalsAndSlots() {
 void Chat::loadMessages() {
     if (m_socket->isOpen()) {
         QTextStream stream(m_socket);
-        stream << "get_messages:" << chatId << "\n";
+        stream << "get_messages:" << chatId << ":" << userId <<"\n";
         stream.flush();
     } else {
         qDebug() << "Socket is not open. Cannot load messages.";
