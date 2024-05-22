@@ -139,24 +139,29 @@ void Messenger::onSearchTextChanged(const QString &text)
 void Messenger::processServerResponse(const QString &response)
 {
     QStringList lines = response.split('\n');
-        for (const QString &line : lines) {
-            if (line.startsWith("chat_list_item:")) {
-                QStringList parts = line.split(":");
-                if (parts.count() < 3) continue;
+    for (const QString &line : lines) {
+        if (line.startsWith("chat_list_item:")) {
+            QStringList parts = line.split(":");
+            if (parts.count() < 4) continue;
 
-                QString chatId = parts.at(1);
-                QString chatName = parts.at(2);
-                QListWidgetItem *chatItem = new QListWidgetItem(chatName);
-                chatItem->setData(Qt::UserRole, chatId);
-                chatsListWidget->addItem(chatItem);
-            } else if (line.startsWith("search_result:")) {
+            QString chatId = parts.at(1);
+            QString chatName = parts.at(2);
+            QString chatItemText = chatName;
+            // Проверяем наличие непрочитанных сообщений
+            if(parts.at(3) == "has_new_messages") {
+                chatItemText += " (Новое сообщение)";
+            }
+            QListWidgetItem *chatItem = new QListWidgetItem(chatItemText);
+            chatItem->setData(Qt::UserRole, chatId);
+            chatsListWidget->addItem(chatItem);
+
+        } else if (line.startsWith("search_result:")) {
             QString username = line.section(':', 1, 1); // Получаем часть между двумя ':'
             usersListWidget->addItem(new QListWidgetItem(username));
         }
         // Другие условия, например, для команд login, register и других
     }
-    if (response.contains("search_end"))
-    {
+    if (response.contains("search_end")) {
         // Обработка завершения поиска
     }
 }
@@ -191,9 +196,6 @@ void Messenger::onUserListItemClicked(QListWidgetItem *item) {
         }
         qDebug() << "Login: " << login << "\n";
 
-        //item->setData(Qt::UserRole, newChatId);
-        //int chatId = item->data(Qt::UserRole).toInt();
-        //int chatId = newChatId;
         disconnect(m_socket, &QTcpSocket::connected, this, &Messenger::onConnected);
         disconnect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
 
