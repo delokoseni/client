@@ -27,6 +27,7 @@ public slots:
     void refreshChatsList();
 
 private:
+    int newChatId;
     unsigned int window_width = 800, window_height = 600;
     const QString login;
     QTcpSocket *m_socket;

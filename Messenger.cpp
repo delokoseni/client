@@ -103,6 +103,12 @@ void Messenger::onReadyRead()
             if (!line.startsWith("search_result:") && !line.isEmpty()) {
                 processServerResponse(line); // Обрабатываем каждую независимую строку отдельно
             }
+            if (line.startsWith("create_chat:"))
+            {
+                QStringList parts = line.split(":");
+                newChatId = parts.at(2).toInt();
+                qDebug() << "New chat id: " << newChatId << "\n";
+            }
         }
 }
 
@@ -168,10 +174,12 @@ void Messenger::onUserListItemClicked(QListWidgetItem *item) {
             stream.flush();
         }
         qDebug() << "Login: " << login << "\n";
-        int chatId = item->data(Qt::UserRole).toInt();
 
-        disconnect(m_socket, &QTcpSocket::connected, this, &Messenger::onConnected);
-        disconnect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
+        //item->setData(Qt::UserRole, newChatId);
+        //int chatId = item->data(Qt::UserRole).toInt();
+        int chatId = newChatId;
+        //disconnect(m_socket, &QTcpSocket::connected, this, &Messenger::onConnected);
+        //disconnect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
 
         Chat *chatWidget = new Chat(m_socket, chatId, login); // Создаем виджет чата
 
