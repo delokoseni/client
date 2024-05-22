@@ -105,7 +105,27 @@ void Messenger::onReadyRead()
             if (!line.startsWith("search_result:") && !line.isEmpty()) {
                 processServerResponse(line); // Обрабатываем каждую независимую строку отдельно
             }
-        }
+            if(line.startsWith("new_message_in_chat:"))
+            {
+                int receivedChatId = line.section(':', 1).toInt();
+                qDebug() << "New message received in chat ID" << receivedChatId << ". Loading new messages...";
+                for(int i = 0; i < chatsListWidget->count(); i++) {
+                    QListWidgetItem *item = chatsListWidget->item(i);
+
+                    if (item->data(Qt::UserRole).toInt() == receivedChatId) {
+                            QString itemName = item->text();
+
+                            // Проверяем, не было ли уже добавлено "(Новое сообщение)" к названию чата
+                            if(!itemName.contains("(Новое сообщение)")) {
+                                itemName += "(Новое сообщение)";
+                            }
+
+                            item->setText(itemName);
+                            break; // Выходим из цикла после обновления, так как искомый элемент найден
+                    }
+                }
+            }
+    }
 }
 
 void Messenger::onSearchTextChanged(const QString &text)
