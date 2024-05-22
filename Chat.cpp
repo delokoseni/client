@@ -149,7 +149,16 @@ void Chat::onReadyRead()
             chatId = parts.at(2).toInt();
             qDebug() << "New chat id: " << chatId << "\n";
         }
-        // Обработка других команд...
+        else if(line.startsWith("new_message_in_chat:"))
+        {
+                    // Получаем идентификатор чата из сообщения
+                    int receivedChatId = line.section(':', 1).toInt();
+                    // Проверяем, что это сообщение для активного чата
+                    if(receivedChatId == this->chatId) {
+                        qDebug() << "New message received in chat ID" << this->chatId << ". Loading new messages...";
+                        loadMessages(); // Вызываем метод загрузки новых сообщений
+                    }
+        }
     }
 }
 
