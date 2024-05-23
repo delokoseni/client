@@ -8,35 +8,36 @@
 #include <QTcpSocket>
 #include <QStackedWidget>
 
-class Messenger : public QMainWindow {
+class Messenger : public QMainWindow
+{
     Q_OBJECT
-
-public:
-    explicit Messenger(QTcpSocket* socket, QWidget *parent = nullptr, const QString login = "");
-    void connectToServer();
-
-public slots:
-    void performSearch(); //Слот для обработки поиска
-    void onConnected();
-    void onReadyRead();
-    void onSearchTextChanged(const QString &text);
-    void onUserListItemClicked(QListWidgetItem *item); //Обработчик клика по элементу пользователей
-    void onChatListItemClicked(QListWidgetItem *item);//Обработчик клика по элементу чатов
-    void onHideInterfaceElements();    // Слот для скрытия элементов интерфейса
-    void onShowInterfaceElements();
-    void refreshChatsList();
 
 private:
     int newChatId;
-    unsigned int window_width = 800, window_height = 600;
+    unsigned int window_width = 800;
+    unsigned int window_height = 600;
     const QString login;
     QTcpSocket *m_socket;
     QLineEdit *searchEdit;
     QPushButton *exitButton, *searchButton;
-    QListWidget *usersListWidget; //Виджет для отображения списка пользователей
-    QListWidget *chatsListWidget; //Виджет для отображения списка чатов
+    QListWidget *usersListWidget; //Виджет для отображения списка пользователей (в поиске)
+    QListWidget *chatsListWidget; //Виджет для отображения списка чатов (которые уже есть)
     QStackedWidget *stackedWidgets;
+
     void processServerResponse(const QString &response);
+    void onHideInterfaceElements();
+    void onShowInterfaceElements();
+    void refreshChatsList();
+
+public:
+    explicit Messenger(QTcpSocket* socket, QWidget *parent = nullptr, const QString login = "");
+
+private slots:
+    void performSearch();
+    void onReadyRead();
+    void onSearchTextChanged(const QString &text);
+    void onUserListItemClicked(QListWidgetItem *item); //Обработчик клика по элементу пользователей (в поиске)
+    void onChatListItemClicked(QListWidgetItem *item); //Обработчик клика по элементу чатов (которые уже есть)
 
 };
 

@@ -6,26 +6,11 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QVBoxLayout>
-#include <QSqlDatabase>
-#include <QSqlQuery>
 #include <QTcpSocket>
 
-class Chat : public QWidget {
+class Chat : public QWidget
+{
     Q_OBJECT
-
-public:
-    explicit Chat(QTcpSocket* socket, int chatId, const QString& login, QWidget* parent = nullptr);
-    void requestUserId(const QString &login);
-
-signals:
-    void backToChatsList(); //Сигнал для возврата к списку чатов
-
-private slots:
-    void sendMessage();
-    void loadMessages();
-    void onBackButtonClicked();
-    void onConnected();
-    void onReadyRead();
 
 private:
     int chatId, userId = 0;
@@ -40,6 +25,20 @@ private:
     void setupUi();
     void connectSignalsAndSlots();
     void retrieveMessages();
+    void requestUserId(const QString &login);
+
+public:
+    explicit Chat(QTcpSocket* socket, int chatId, const QString& login, QWidget* parent = nullptr);
+
+signals:
+    void backToChatsList();
+
+private slots:
+    void sendMessage();
+    void loadMessages();
+    void onBackButtonClicked();
+    void onReadyRead();
+
 };
 
 #endif // CHAT_H

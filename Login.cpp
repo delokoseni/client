@@ -1,16 +1,25 @@
 #include "Login.h"
+#include "Messenger.h"
+
+#include <QDebug>
+#include <QTextStream>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QFormLayout>
+#include <QVBoxLayout>
+#include <QTimer>
+#include <QRegularExpression>
+#include <QMessageBox>
 
 Login::Login(QTcpSocket* socket, QWidget *parent) : QMainWindow(parent), m_socket(socket)
 {
-    connectToServer();
-    setWindowTitle("Вход"); // Установка названия окна
-    resize(window_width, window_height); // Установка размеров окна
+    connect(m_socket, &QTcpSocket::readyRead, this, &Login::onReadyRead);
+    setWindowTitle("Вход");
+    resize(window_width, window_height);
 
-    // Стек виджетов для переключения между экранами входа и регистрации
     stackedWidget = new QStackedWidget(this);
     setCentralWidget(stackedWidget);
 
-    // Виджеты для экрана входа
     QWidget *loginWidget = new QWidget();
     QVBoxLayout *loginLayout = new QVBoxLayout(loginWidget);
     QFormLayout *loginFormLayout = new QFormLayout();
@@ -44,7 +53,6 @@ Login::Login(QTcpSocket* socket, QWidget *parent) : QMainWindow(parent), m_socke
     loginWidget->setLayout(loginLayout);
     stackedWidget->addWidget(loginWidget);
 
-    // Виджеты для экрана регистрации
     QWidget *registerWidget = new QWidget();
     QVBoxLayout *registerLayout = new QVBoxLayout(registerWidget);
     QFormLayout *registerFormLayout = new QFormLayout();
@@ -70,11 +78,13 @@ Login::Login(QTcpSocket* socket, QWidget *parent) : QMainWindow(parent), m_socke
     registerWidget->setLayout(registerLayout);
     stackedWidget->addWidget(registerWidget);
 
-    connect(loginButton, &QPushButton::clicked, this, [this, usernameInput, passwordInput]() {
+    connect(loginButton, &QPushButton::clicked, this, [this, usernameInput, passwordInput]()
+    {
         sendLoginRequest(usernameInput->text(), passwordInput->text());
     });
 
-    connect(registerPrompt, &QLabel::linkActivated, this, [this, usernameInput, passwordInput]() {
+    connect(registerPrompt, &QLabel::linkActivated, this, [this, usernameInput, passwordInput]()
+    {
         stackedWidget->setCurrentIndex(1);
         setWindowTitle("Регистрация");
         usernameInput->clear();
@@ -82,7 +92,8 @@ Login::Login(QTcpSocket* socket, QWidget *parent) : QMainWindow(parent), m_socke
         loginErrorLabel->setText("");
     });
 
-    connect(backButton, &QPushButton::clicked, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput]() {
+    connect(backButton, &QPushButton::clicked, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput]()
+    {
         stackedWidget->setCurrentIndex(0);
         setWindowTitle("Вход");
         errorLabel->setText("");
@@ -91,7 +102,8 @@ Login::Login(QTcpSocket* socket, QWidget *parent) : QMainWindow(parent), m_socke
         repeatPasswordInput->clear();
     });
 
-    connect(registerButton, &QPushButton::clicked, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput]() {
+    connect(registerButton, &QPushButton::clicked, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput]()
+    {
         QString newUsername = newUsernameInput->text();
         QString newPassword = newPasswordInput->text();
         QString repeatPassword = repeatPasswordInput->text();
@@ -100,7 +112,8 @@ Login::Login(QTcpSocket* socket, QWidget *parent) : QMainWindow(parent), m_socke
         {
             errorLabel->setText("Логин не может быть пустым");
             return;
-        } else if (newUsername.contains(QRegularExpression("[А-я]")))
+        }
+        else if (newUsername.contains(QRegularExpression("[А-я]")))
         {
             errorLabel->setText("Логин содержит запрещенные символы");
             return;
@@ -109,7 +122,8 @@ Login::Login(QTcpSocket* socket, QWidget *parent) : QMainWindow(parent), m_socke
         {
             errorLabel->setText("Пароли не совпадают");
             return;
-        } else if (newPassword.length() < 8 ||
+        }
+        else if (newPassword.length() < 8 ||
                    !newPassword.contains(QRegularExpression("[A-Z]")) ||
                    !newPassword.contains(QRegularExpression("[a-z]")) ||
                    !newPassword.contains(QRegularExpression("[0-9]")) ||
@@ -118,72 +132,76 @@ Login::Login(QTcpSocket* socket, QWidget *parent) : QMainWindow(parent), m_socke
         {
             errorLabel->setText("Пароль слишком слабый\nили содержит запрещенные символы");
             return;
-        } else if (newPassword.length() > 255)
+        }
+        else if (newPassword.length() > 255)
         {
             errorLabel->setText("Пароль слишком длинный");
             return;
-        } else {
-            // Отправить данные на сервер для регистрации
+        }
+        else
+        {
             errorLabel->clear();
             errorLabel->hide();
-            if (m_socket->isOpen()) {
+            if (m_socket->isOpen())
+            {
                 QTextStream stream(m_socket);
                 stream << "register:" << newUsername << ":" << newPassword;
-             }
+            }
+            else
+            {
+                QMessageBox::information(this, "Ошибка!", "Кажется, что-то пошло не так. Попробуйте позже.");
+            }
         }
     });
 
 }
 
-void Login::connectToServer()
-{
-    connect(m_socket, &QTcpSocket::connected, this, &Login::onConnected);
-    connect(m_socket, &QTcpSocket::readyRead, this, &Login::onReadyRead); // Устанавливаем соединение сигнала с слотом
-}
-
 void Login::sendLoginRequest(const QString &username, const QString &password)
 {
-    if (!username.isEmpty() && !password.isEmpty() && m_socket->isOpen())
-    {
+     if (!username.isEmpty() && !password.isEmpty() && m_socket->isOpen())
+     {
          QTextStream stream(m_socket);
          login = username;
          stream << "login:" << username << ":" << password << '\n';
          stream.flush();
-     } else
-     {
-         qDebug() << "Login and password must be entered or the socket is not open.";
      }
-}
-
-void Login::onConnected()
-{
-    qDebug() << "Connected to server.";
+     else if(m_socket->isOpen())
+     {
+         QMessageBox::information(this, "Ошибка!", "Не введен логин или пароль.");
+     }
+     else
+     {
+         QMessageBox::information(this, "Ошибка!", "Кажется, что-то пошло не так. Попробуйте позже.");
+     }
 }
 
 void Login::onReadyRead()
 {
     QTextStream stream(m_socket);
     QString response = stream.readAll().trimmed();
-    // Проверка ответа сервера на успешный вход
     QStringList parts = response.split(":");
-    if (response.startsWith("login:success")) {
-        // Создаем окно чата
+    if (response.startsWith("login:success"))
+    {
         this->hide();
-        disconnect(m_socket, &QTcpSocket::connected, this, &Login::onConnected);
         disconnect(m_socket, &QTcpSocket::readyRead, this, &Login::onReadyRead);
         Messenger *messenger = new Messenger(m_socket, nullptr, login);
         messenger->show();
-        messenger->setAttribute(Qt::WA_DeleteOnClose); // Установить флаг для автоматического удаления
-        // Закрыть текущее окно входа
+        messenger->setAttribute(Qt::WA_DeleteOnClose);
         connect(messenger, &Messenger::destroyed, [this]() { this->close(); });
-    } else if (response.startsWith("login:fail")) {
+    }
+    else if (response.startsWith("login:fail"))
+    {
         loginErrorLabel->setText("Введены неверный логин или пароль");
         loginErrorLabel->show();
-    } else if(response.startsWith("register:fail:username taken")) {
+    }
+    else if(response.startsWith("register:fail:username taken"))
+    {
         errorLabel->setText("Этот логин уже используется");
         errorLabel->show();
         stackedWidget->setCurrentIndex(1);
-    } else if(response.startsWith("register:success")) {
+    }
+    else if(response.startsWith("register:success"))
+    {
         stackedWidget->setCurrentIndex(0);
         setWindowTitle("Вход");
         registerSuccessLabel->setText("Регистрация прошла успешно");
