@@ -76,12 +76,10 @@ void Login::setupUI()
 void Login::connectSignals()
 {
     connect(m_socket, &QTcpSocket::readyRead, this, &Login::onReadyRead);
-
     connect(loginButton, &QPushButton::clicked, this, [this]()
     {
         sendLoginRequest(usernameInput->text(), passwordInput->text());
     });
-
     connect(registerPrompt, &QLabel::linkActivated, this, [this]()
     {
         stackedWidget->setCurrentIndex(1);
@@ -90,7 +88,6 @@ void Login::connectSignals()
         passwordInput->clear();
         loginErrorLabel->setText("");
     });
-
     connect(backButton, &QPushButton::clicked, this, [this]()
     {
         stackedWidget->setCurrentIndex(0);
@@ -100,7 +97,6 @@ void Login::connectSignals()
         newPasswordInput->clear();
         repeatPasswordInput->clear();
     });
-
     connect(registerButton, &QPushButton::clicked, this, [this]()
     {
         QString newUsername = newUsernameInput->text();
@@ -151,6 +147,26 @@ void Login::connectSignals()
                 QMessageBox::information(this, "Ошибка!", "Кажется, что-то пошло не так. Попробуйте позже.");
             }
         }
+    });
+    connect(usernameInput, &QLineEdit::returnPressed, this, [this]()
+    {
+            sendLoginRequest(usernameInput->text(), passwordInput->text());
+    });
+    connect(passwordInput, &QLineEdit::returnPressed, this, [this]()
+    {
+        sendLoginRequest(usernameInput->text(), passwordInput->text());
+    });
+    connect(newUsernameInput, &QLineEdit::returnPressed, this, [this]()
+    {
+        registerButton->click();
+    });
+    connect(newPasswordInput, &QLineEdit::returnPressed, this, [this]()
+    {
+        registerButton->click();
+    });
+    connect(repeatPasswordInput, &QLineEdit::returnPressed, this, [this]()
+    {
+        registerButton->click();
     });
 }
 

@@ -28,6 +28,9 @@ private:
     void onHideInterfaceElements();
     void onShowInterfaceElements();
     void refreshChatsList();
+    void setupUI();
+    void connectSignals();
+    void openChatWidget(int chatId, const QString &title);
 
 public:
     explicit Messenger(QTcpSocket* socket, QWidget *parent = nullptr, const QString login = "");

@@ -2,6 +2,7 @@
 
 #include <QScrollBar>
 #include <QMessageBox>
+#include <QShortcut>
 
 Chat::Chat(QTcpSocket* socket, int chatId, const QString& login, QWidget* parent)
     : QWidget(parent), chatId(chatId), m_socket(socket), login(login)
@@ -24,6 +25,9 @@ void Chat::setupUi()
     layout->addWidget(messageInputWidget);
     layout->addWidget(sendMessageButton);
     setLayout(layout);
+    new QShortcut(QKeySequence(Qt::Key_Return), this, SLOT(sendMessage()));
+    new QShortcut(QKeySequence(Qt::Key_Enter), this, SLOT(sendMessage()));
+    new QShortcut(QKeySequence(Qt::Key_Escape), this, SLOT(onBackButtonClicked()));
 }
 
 void Chat::connectSignalsAndSlots()
@@ -59,21 +63,16 @@ void Chat::sendMessage()
             QTextStream stream(m_socket);
             stream << "send_message:" << chatId << ":" << userId << ":" << messageText << "\n";
             stream.flush();
-
             QTextCursor cursor(messagesHistoryWidget->textCursor());
             cursor.movePosition(QTextCursor::End);
-
             QTextBlockFormat blockFormat;
             blockFormat.setAlignment(Qt::AlignRight);
             blockFormat.setRightMargin(0);
             blockFormat.setLeftMargin(0);
-
             QTextCharFormat charFormat;
             charFormat.setForeground(QBrush(Qt::blue));
-
             cursor.insertBlock(blockFormat, charFormat);
             cursor.insertText(messageText);
-
             messageInputWidget->clear();
             QScrollBar *scrollBar = messagesHistoryWidget->verticalScrollBar();
             scrollBar->setValue(scrollBar->maximum());
@@ -116,10 +115,8 @@ void Chat::onReadyRead()
             {
                 QString messageText = line.mid(13, lastColonIndex - 13);
                 int senderId = line.mid(lastColonIndex + 1).toInt();
-
                 QTextCursor cursor(messagesHistoryWidget->textCursor());
                 cursor.movePosition(QTextCursor::End);
-
                 QTextBlockFormat blockFormat;
                 blockFormat.setRightMargin(0);
                 blockFormat.setLeftMargin(0);

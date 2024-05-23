@@ -7,45 +7,48 @@
 #include <QDebug>
 #include <QMessageBox>
 #include <QCloseEvent>
+#include <QShortcut>
 
 Messenger::Messenger(QTcpSocket* socket, QWidget *parent, const QString login) : QMainWindow(parent), login(login), m_socket(socket)
 {
-    connect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
+    setupUI();
+    connectSignals();
+    refreshChatsList();
+}
 
+void Messenger::setupUI()
+{
     setWindowTitle("Чаты");
     resize(window_width, window_height);
-
     QHBoxLayout *searchLayout = new QHBoxLayout();
     searchEdit = new QLineEdit();
     searchEdit->setPlaceholderText("Поиск...");
     searchLayout->addWidget(searchEdit);
-
     searchButton = new QPushButton("Найти");
     searchLayout->addWidget(searchButton);
-
     QWidget *centralWidget = new QWidget(this);
     QVBoxLayout *verticalLayout = new QVBoxLayout(centralWidget);
     setCentralWidget(centralWidget);
-
-    connect(searchButton, &QPushButton::clicked, this, &Messenger::performSearch);
-    connect(searchEdit, &QLineEdit::textChanged, this, &Messenger::onSearchTextChanged);
-
     stackedWidgets = new QStackedWidget(this);
     usersListWidget = new QListWidget();
     chatsListWidget = new QListWidget();
     stackedWidgets->addWidget(chatsListWidget); //Индекс 0
     stackedWidgets->addWidget(usersListWidget); //Индекс 1
-
-    connect(usersListWidget, &QListWidget::itemClicked, this, &Messenger::onUserListItemClicked);
-    connect(chatsListWidget, &QListWidget::itemClicked, this, &Messenger::onChatListItemClicked);
-
     verticalLayout->addLayout(searchLayout);
     verticalLayout->addWidget(stackedWidgets);
-
     exitButton = new QPushButton("Выйти");
     verticalLayout->addWidget(exitButton);
+}
+
+void Messenger::connectSignals()
+{
+    connect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
+    connect(searchButton, &QPushButton::clicked, this, &Messenger::performSearch);
+    connect(searchEdit, &QLineEdit::textChanged, this, &Messenger::onSearchTextChanged);
+    connect(searchEdit, &QLineEdit::returnPressed, this, &Messenger::performSearch);
+    connect(usersListWidget, &QListWidget::itemClicked, this, &Messenger::onUserListItemClicked);
+    connect(chatsListWidget, &QListWidget::itemClicked, this, &Messenger::onChatListItemClicked);
     connect(exitButton, &QPushButton::clicked, this, &Messenger::close);
-    refreshChatsList();
 }
 
 void Messenger::performSearch()
@@ -73,7 +76,6 @@ void Messenger::onReadyRead()
 {
     QTextStream stream(m_socket);
     QString buffer;
-
     while (!stream.atEnd())
     {
             QString line = stream.readLine().trimmed();
@@ -118,7 +120,6 @@ void Messenger::onReadyRead()
                         {
                             itemName += "(Новое сообщение)";
                         }
-
                         item->setText(itemName);
                         break;
                     }
@@ -144,7 +145,6 @@ void Messenger::processServerResponse(const QString &response)
         {
             QStringList parts = line.split(":");
             if (parts.count() < 4) continue;
-
             QString chatId = parts.at(1);
             QString chatName = parts.at(2);
             QString chatItemText = chatName;
@@ -155,7 +155,6 @@ void Messenger::processServerResponse(const QString &response)
             QListWidgetItem *chatItem = new QListWidgetItem(chatItemText);
             chatItem->setData(Qt::UserRole, chatId);
             chatsListWidget->addItem(chatItem);
-
         }
         else if (line.startsWith("search_result:"))
         {
@@ -184,71 +183,41 @@ void Messenger::onShowInterfaceElements()
     refreshChatsList();
 }
 
-void Messenger::onUserListItemClicked(QListWidgetItem *item)
-{
-    if (item)
-    {
-        onHideInterfaceElements();
+void Messenger::openChatWidget(int chatId, const QString &title) {
+    onHideInterfaceElements();
+    setWindowTitle(title);
+    disconnect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
+    Chat *chatWidget = new Chat(m_socket, chatId, login);
+    connect(chatWidget, &Chat::backToChatsList, this, [this, chatWidget] () {
+        stackedWidgets->setCurrentWidget(chatsListWidget);
+        onShowInterfaceElements();
+        searchEdit->clear();
+        setWindowTitle("Чаты");
+        connect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
+        chatWidget->deleteLater();
+    });
+    stackedWidgets->addWidget(chatWidget);
+    stackedWidgets->setCurrentWidget(chatWidget);
+}
+
+void Messenger::onUserListItemClicked(QListWidgetItem *item) {
+    if (item) {
         qDebug() << "Выбран пользователь: " << item->text();
-        setWindowTitle(item->text());
-
         QString selectedUserLogin = item->text();
-
         if (m_socket->isOpen()) {
             QTextStream stream(m_socket);
-            qDebug() << "Login: " << login << "\n";
-            stream << "create_chat:" << login + selectedUserLogin<< ":personal:" << login << ":" << selectedUserLogin << "\n";
+            stream << "create_chat:" << login + selectedUserLogin << ":personal:" << login << ":" << selectedUserLogin << "\n";
             stream.flush();
         }
-        qDebug() << "Login: " << login << "\n";
-
-        disconnect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
-
-        Chat *chatWidget = new Chat(m_socket, 0, login);
-
-        connect(chatWidget, &Chat::backToChatsList, this, [this, chatWidget]()
-        {
-            stackedWidgets->setCurrentWidget(chatsListWidget);
-            onShowInterfaceElements();
-            searchEdit->clear();
-            setWindowTitle("Чаты");
-
-            connect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
-
-            chatWidget->deleteLater();
-        });
-
-        stackedWidgets->addWidget(chatWidget);
-        stackedWidgets->setCurrentWidget(chatWidget);
+        openChatWidget(0, item->text());
     }
 }
 
-void Messenger::onChatListItemClicked(QListWidgetItem *item)
-{
-    if (item)
-    {
-        onHideInterfaceElements();
+void Messenger::onChatListItemClicked(QListWidgetItem *item) {
+    if (item) {
         qDebug() << "Выбран чат: " << item->text();
-        setWindowTitle(item->text());
-        qDebug() << "Login: " << login << "\n";
         int chatId = item->data(Qt::UserRole).toInt();
-
-        disconnect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
-
-        Chat *chatWidget = new Chat(m_socket, chatId, login);
-        connect(chatWidget, &Chat::backToChatsList, this, [this, chatWidget] ()
-        {
-            stackedWidgets->setCurrentWidget(chatsListWidget);
-            onShowInterfaceElements();
-            searchEdit->clear();
-            setWindowTitle("Чаты");
-
-            connect(m_socket, &QTcpSocket::readyRead, this, &Messenger::onReadyRead);
-            chatWidget->deleteLater();
-
-        });
-        stackedWidgets->addWidget(chatWidget);
-        stackedWidgets->setCurrentWidget(chatWidget);
+        openChatWidget(chatId, item->text());
     }
 }
 
