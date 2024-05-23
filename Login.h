@@ -6,6 +6,8 @@
 #include <QLabel>
 #include <QWidget>
 #include <QStackedWidget>
+#include <QPushButton>
+#include <QLineEdit>
 
 class Login : public QMainWindow
 {
@@ -19,9 +21,20 @@ private:
     QLabel *loginErrorLabel;
     QLabel *registerSuccessLabel;
     QLabel *errorLabel;
+    QLabel *registerPrompt;
     QStackedWidget *stackedWidget;
+    QPushButton *loginButton;
+    QPushButton *backButton;
+    QPushButton *registerButton;
+    QLineEdit *usernameInput;
+    QLineEdit *passwordInput;
+    QLineEdit *newUsernameInput;
+    QLineEdit *newPasswordInput;
+    QLineEdit *repeatPasswordInput;
 
     void sendLoginRequest(const QString &username, const QString &password);
+    void setupUI();
+    void connectSignals();
 
 public:
     explicit Login(QTcpSocket* socket, QWidget *parent = nullptr);

@@ -3,8 +3,6 @@
 
 #include <QDebug>
 #include <QTextStream>
-#include <QLineEdit>
-#include <QPushButton>
 #include <QFormLayout>
 #include <QVBoxLayout>
 #include <QTimer>
@@ -13,77 +11,78 @@
 
 Login::Login(QTcpSocket* socket, QWidget *parent) : QMainWindow(parent), m_socket(socket)
 {
-    connect(m_socket, &QTcpSocket::readyRead, this, &Login::onReadyRead);
+    setupUI();
+    connectSignals();
+}
+
+void Login::setupUI()
+{
     setWindowTitle("Вход");
     resize(window_width, window_height);
-
     stackedWidget = new QStackedWidget(this);
     setCentralWidget(stackedWidget);
-
     QWidget *loginWidget = new QWidget();
     QVBoxLayout *loginLayout = new QVBoxLayout(loginWidget);
     QFormLayout *loginFormLayout = new QFormLayout();
-    QLineEdit *usernameInput = new QLineEdit();
-    QLineEdit *passwordInput = new QLineEdit();
+    usernameInput = new QLineEdit();
+    passwordInput = new QLineEdit();
     passwordInput->setEchoMode(QLineEdit::Password);
-    QPushButton *loginButton = new QPushButton("Войти");
-
-    QLabel *registerPrompt = new QLabel("Нет учетной записи? <a href='register'>Зарегистрироваться</a>");
+    loginButton = new QPushButton("Войти");
+    registerPrompt = new QLabel("Нет учетной записи? <a href='register'>Зарегистрироваться</a>");
     registerPrompt->setTextFormat(Qt::RichText);
     registerPrompt->setTextInteractionFlags(Qt::TextBrowserInteraction);
-
     loginErrorLabel = new QLabel();
     loginErrorLabel->setStyleSheet("QLabel { color: red; }");
     loginErrorLabel->setAlignment(Qt::AlignCenter);
     loginErrorLabel->hide();
-
     registerSuccessLabel = new QLabel();
     registerSuccessLabel->setStyleSheet("QLabel { color: green; }");
     registerSuccessLabel->setAlignment(Qt::AlignCenter);
     registerSuccessLabel->hide();
-
     loginFormLayout->addRow(new QLabel("Логин:"), usernameInput);
     loginFormLayout->addRow(new QLabel("Пароль:"), passwordInput);
     loginFormLayout->addWidget(loginButton);
     loginFormLayout->addWidget(registerPrompt);
     loginFormLayout->addRow(registerSuccessLabel);
     loginFormLayout->addWidget(loginErrorLabel);
-
     loginLayout->addLayout(loginFormLayout);
     loginWidget->setLayout(loginLayout);
     stackedWidget->addWidget(loginWidget);
-
     QWidget *registerWidget = new QWidget();
     QVBoxLayout *registerLayout = new QVBoxLayout(registerWidget);
     QFormLayout *registerFormLayout = new QFormLayout();
-    QLineEdit *newUsernameInput = new QLineEdit();
-    QLineEdit *newPasswordInput = new QLineEdit();
-    QLineEdit *repeatPasswordInput = new QLineEdit();
+    newUsernameInput = new QLineEdit();
+    newPasswordInput = new QLineEdit();
+    repeatPasswordInput = new QLineEdit();
     newPasswordInput->setEchoMode(QLineEdit::Password);
     repeatPasswordInput->setEchoMode(QLineEdit::Password);
-    QPushButton *registerButton = new QPushButton("Зарегистрироваться");
+    registerButton = new QPushButton("Зарегистрироваться");
     errorLabel = new QLabel();
     errorLabel->setStyleSheet("QLabel { color: red; }");
     errorLabel->setAlignment(Qt::AlignCenter | Qt::AlignCenter);
     errorLabel->hide();
-
     registerFormLayout->addRow(new QLabel("Логин:"), newUsernameInput);
     registerFormLayout->addRow(new QLabel("Пароль:"), newPasswordInput);
     registerFormLayout->addRow(new QLabel("Повторите пароль:"), repeatPasswordInput);
     registerFormLayout->addWidget(registerButton);
     registerFormLayout->addRow("", errorLabel);
-    QPushButton *backButton = new QPushButton("Назад");
+    backButton = new QPushButton("Назад");
     registerLayout->addLayout(registerFormLayout);
     registerLayout->addWidget(backButton);
     registerWidget->setLayout(registerLayout);
     stackedWidget->addWidget(registerWidget);
+}
 
-    connect(loginButton, &QPushButton::clicked, this, [this, usernameInput, passwordInput]()
+void Login::connectSignals()
+{
+    connect(m_socket, &QTcpSocket::readyRead, this, &Login::onReadyRead);
+
+    connect(loginButton, &QPushButton::clicked, this, [this]()
     {
         sendLoginRequest(usernameInput->text(), passwordInput->text());
     });
 
-    connect(registerPrompt, &QLabel::linkActivated, this, [this, usernameInput, passwordInput]()
+    connect(registerPrompt, &QLabel::linkActivated, this, [this]()
     {
         stackedWidget->setCurrentIndex(1);
         setWindowTitle("Регистрация");
@@ -92,7 +91,7 @@ Login::Login(QTcpSocket* socket, QWidget *parent) : QMainWindow(parent), m_socke
         loginErrorLabel->setText("");
     });
 
-    connect(backButton, &QPushButton::clicked, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput]()
+    connect(backButton, &QPushButton::clicked, this, [this]()
     {
         stackedWidget->setCurrentIndex(0);
         setWindowTitle("Вход");
@@ -102,7 +101,7 @@ Login::Login(QTcpSocket* socket, QWidget *parent) : QMainWindow(parent), m_socke
         repeatPasswordInput->clear();
     });
 
-    connect(registerButton, &QPushButton::clicked, this, [this, newUsernameInput, newPasswordInput, repeatPasswordInput]()
+    connect(registerButton, &QPushButton::clicked, this, [this]()
     {
         QString newUsername = newUsernameInput->text();
         QString newPassword = newPasswordInput->text();
@@ -153,7 +152,6 @@ Login::Login(QTcpSocket* socket, QWidget *parent) : QMainWindow(parent), m_socke
             }
         }
     });
-
 }
 
 void Login::sendLoginRequest(const QString &username, const QString &password)
