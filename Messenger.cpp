@@ -6,6 +6,7 @@
 #include <QWidget>
 #include <QDebug>
 #include <QMessageBox>
+#include <QCloseEvent>
 
 Messenger::Messenger(QTcpSocket* socket, QWidget *parent, const QString login) : QMainWindow(parent), login(login), m_socket(socket)
 {
@@ -263,5 +264,19 @@ void Messenger::refreshChatsList()
     else
     {
         QMessageBox::information(this, "Ошибка!", "Кажется, что-то пошло не так. Попробуйте позже.");
+    }
+}
+
+void Messenger::closeEvent(QCloseEvent *event)
+{
+    QMessageBox::StandardButton reply = QMessageBox::question(this, "Выход", "Вы уверены, что хотите выйти?",
+                                                               QMessageBox::Yes | QMessageBox::No);
+    if (reply == QMessageBox::Yes)
+    {
+        event->accept();
+    }
+    else
+    {
+        event->ignore();
     }
 }

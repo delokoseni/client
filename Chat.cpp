@@ -97,7 +97,7 @@ void Chat::onReadyRead()
     QTextStream stream(m_socket);
     while (!stream.atEnd())
     {
-        QString line = stream.readLine().trimmed(); // Читаем строку за строкой
+        QString line = stream.readLine().trimmed();
 
         if (line.startsWith("send_message:success"))
         {
@@ -105,20 +105,20 @@ void Chat::onReadyRead()
         }
         else if (line.startsWith("send_message:fail"))
         {
-            QString errorMessage = line.section(':', 2, -1); // Получаем сообщение об ошибке
+            QString errorMessage = line.section(':', 2, -1);
             qDebug() << "Failed to send message:" << errorMessage;
+            QMessageBox::information(this, "Ошибка!", "Кажется, что-то пошло не так. Попробуйте позже.");
         }
         else if (line.startsWith("message_item:"))
         {
             int lastColonIndex = line.lastIndexOf(':');
             if (lastColonIndex != -1)
             {
-                QString messageText = line.mid(13, lastColonIndex - 13); // Извлекаем текст сообщения
-                int senderId = line.mid(lastColonIndex + 1).toInt(); // Извлекаем user_id
+                QString messageText = line.mid(13, lastColonIndex - 13);
+                int senderId = line.mid(lastColonIndex + 1).toInt();
 
-                // Создаем QTextCursor, связанный с QTextEdit
                 QTextCursor cursor(messagesHistoryWidget->textCursor());
-                cursor.movePosition(QTextCursor::End); // Перемещаем курсор к концу текста
+                cursor.movePosition(QTextCursor::End);
 
                 QTextBlockFormat blockFormat;
                 blockFormat.setRightMargin(0);

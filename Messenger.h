@@ -39,6 +39,9 @@ private slots:
     void onUserListItemClicked(QListWidgetItem *item); //Обработчик клика по элементу пользователей (в поиске)
     void onChatListItemClicked(QListWidgetItem *item); //Обработчик клика по элементу чатов (которые уже есть)
 
+protected:
+        void closeEvent(QCloseEvent *event) override;
+
 };
 
 #endif // MESSENGER_H
