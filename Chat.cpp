@@ -165,6 +165,7 @@ void Chat::onReadyRead()
             if(receivedChatId == this->chatId)
             {
                 qDebug() << "New message received in chat ID" << this->chatId << ". Loading new messages...";
+                messagesHistoryWidget->clear();
                 loadMessages();
             }
         }
